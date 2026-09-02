@@ -19,7 +19,7 @@
     "name": "w0lfzk1nd",
     "found": true,
     "alliance": "OKA",
-    "score": 5449,
+    "score": 5529,
     "rank": 3,
     "online": false
   },
@@ -98,5 +98,9 @@
     "found": true,
     "score": 839,
     "online": false
+  },
+  {
+    "name": "OscarZulu",
+    "found": false
   }
 ]
