@@ -20,6 +20,7 @@ jobs:
         run: |
           pip install playwright
           playwright install chromium
+          playwright install-deps chromium
 
       - name: Tracker mit Login ausführen
         env:
