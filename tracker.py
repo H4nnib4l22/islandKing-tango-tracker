@@ -107,6 +107,52 @@ def last_score_ts(history, name):
     return None
 
 
+def collect_extra_names(tracked):
+    """Namen aus allen data/users/<uuid>/tracked_users.json (Watchlists der
+    Browser-Extensions), die noch nicht in der globalen tracked_users.json
+    stehen. Diese Action laeuft alle ~2 Min. unabhaengig davon, ob irgendwo
+    ein islandking.ch-Tab offen ist - ohne diese Ergaenzung wuerden Namen,
+    die nur eine Extension beobachtet, nie ein 24/7-Hintergrund-Tracking
+    bekommen. Liefert nur die Namen zurueck, NICHT die Dateien selbst -
+    data/users/ bleibt exklusiv von den Extensions beschrieben, diese
+    Funktion liest nur mit."""
+    known = {e.get("name", "").lower() for e in tracked if e.get("name")}
+    extra = set()
+    users_dir = "data/users"
+    if not os.path.isdir(users_dir):
+        return []
+    for uid in os.listdir(users_dir):
+        path = os.path.join(users_dir, uid, "tracked_users.json")
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                entries = json.load(f)
+        except (json.JSONDecodeError, OSError) as err:
+            print(f"  Warnung: {path} konnte nicht gelesen werden: {err}")
+            continue
+        for e in entries:
+            name = e.get("name")
+            if name and name.lower() not in known:
+                extra.add(name)
+    return sorted(extra)
+
+
+def record_result(name, result, initial_history, pending_entries):
+    """Verlaufs-Eintrag nur bei tatsaechlichem Treffer - ohne Treffer gibt
+    es weder Score noch Online-Status zum Aufzeichnen. Score-Checkpoint:
+    Score nur alle SCORE_CHECKPOINT_INTERVAL_MS neu festhalten, sonst null.
+    Gemeinsam von der Haupt-Watchlist und den Extra-Namen aus
+    collect_extra_names() genutzt, damit beide identisch behandelt werden."""
+    if not result["found"]:
+        return
+    ts_ms = int(time.time() * 1000)
+    last_ts = last_score_ts(initial_history, name)
+    include_score = last_ts is None or (ts_ms - last_ts) >= SCORE_CHECKPOINT_INTERVAL_MS
+    new_entry = {"ts": ts_ms, "score": result["score"] if include_score else None, "online": result["online"]}
+    pending_entries.setdefault(name, []).append(new_entry)
+
+
 # ---------------------------------------------------------------------
 # history.json über die GitHub-Contents-API - GETEILT mit den
 # Browser-Extensions (mehrere unabhängige Schreiber gleichzeitig möglich).
@@ -232,6 +278,7 @@ def run_tracker():
     # kleine Ungenauigkeit hier ist unkritisch, siehe Chat).
     initial_history, _ = fetch_remote_history()
     pending_entries = {}  # {name: [entry, ...]} - nur was DIESER Lauf neu produziert
+    extra_names = collect_extra_names(tracked)
 
     print(f"Prüfe {len(tracked)} Spieler...")
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -248,17 +295,17 @@ def run_tracker():
         status = "gefunden" if result["found"] else "NICHT gefunden"
         print(f"- {name}: {status}")
 
-        # Verlaufs-Eintrag nur bei tatsächlichem Treffer - ohne Treffer gibt
-        # es weder Score noch Online-Status zum Aufzeichnen.
-        if result["found"]:
-            ts_ms = int(time.time() * 1000)
-            last_ts = last_score_ts(initial_history, name)
-            include_score = last_ts is None or (ts_ms - last_ts) >= SCORE_CHECKPOINT_INTERVAL_MS
-
-            new_entry = {"ts": ts_ms, "score": result["score"] if include_score else None, "online": result["online"]}
-            pending_entries.setdefault(name, []).append(new_entry)
-
+        record_result(name, result, initial_history, pending_entries)
         time.sleep(REQUEST_DELAY_SECONDS)
+
+    if extra_names:
+        print(f"Zusätzlich {len(extra_names)} Namen nur aus Extension-Watchlists (nur für history.json, nicht in tracked_users.json): {', '.join(extra_names)}")
+        for name in extra_names:
+            result = lookup_player(session, headers, name)
+            status = "gefunden" if result["found"] else "NICHT gefunden"
+            print(f"- {name} (extra): {status}")
+            record_result(name, result, initial_history, pending_entries)
+            time.sleep(REQUEST_DELAY_SECONDS)
 
     # tracked_users.json: unverändert exklusiv fürs Go-Core, normaler
     # lokaler Schreibvorgang + Git-Commit im Workflow.
