@@ -63,6 +63,7 @@ with sync_playwright() as p:
 
     except Exception as e:
         print(f"Fehler beim Tracking: {e}")
+        traceback.print_exc()
         raise e
     finally:
         browser.close()
