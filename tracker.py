@@ -14,6 +14,7 @@ TRACKED_FILE = "data/tracked_users.json"
 HISTORY_FILE = "data/history.json"
 REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Abfragen
 HISTORY_RETENTION_DAYS = 90  # alte Verlaufs-Einträge werden danach entfernt
+HISTORY_MIN_INTERVAL_MS = 15 * 60 * 1000  # neuer Verlaufs-Eintrag höchstens alle 15 Min. pro Name
 
 if not USERNAME or not PASSWORD:
     print("Fehler: Zugangsdaten (IK_USER / IK_PASS) sind nicht gesetzt.")
@@ -93,6 +94,18 @@ def load_history():
         return json.load(f)
 
 
+def should_record_history(history, name, ts_ms):
+    """Nur alle HISTORY_MIN_INTERVAL_MS einen neuen Verlaufs-Eintrag
+    anlegen, nicht bei jedem einzelnen Lauf (der Workflow läuft ja u.U.
+    alle paar Minuten über cron-job.org). Der aktuelle Stand in
+    tracked_users.json wird davon nicht berührt - der wird immer
+    aktualisiert, nur die Historie wird gedrosselt."""
+    entries = history.get(name)
+    if not entries:
+        return True
+    return (ts_ms - entries[-1]["ts"]) >= HISTORY_MIN_INTERVAL_MS
+
+
 def append_history(history, name, ts_ms, score, online):
     """Hängt einen neuen Verlaufs-Eintrag an, statt den letzten Stand zu
     überschreiben - genau das, was fürs spätere Bauen von Heatmap/Punkte-
@@ -133,11 +146,16 @@ def run_tracker():
         status = "gefunden" if result["found"] else "NICHT gefunden"
         print(f"- {name}: {status}")
 
-        # Verlaufs-Eintrag nur bei tatsächlichem Treffer - ohne Treffer gibt
-        # es weder Score noch Online-Status zum Aufzeichnen (analog zur
-        # Browser-Extension, die genauso nur bei result.found history schreibt).
+        # Verlaufs-Eintrag nur bei tatsächlichem Treffer UND wenn seit dem
+        # letzten Eintrag mind. 15 Min. vergangen sind (siehe
+        # should_record_history) - ohne Treffer gibt es ohnehin weder Score
+        # noch Online-Status zum Aufzeichnen.
         if result["found"]:
-            append_history(history, name, int(time.time() * 1000), result["score"], result["online"])
+            ts_ms = int(time.time() * 1000)
+            if should_record_history(history, name, ts_ms):
+                append_history(history, name, ts_ms, result["score"], result["online"])
+            else:
+                print(f"    (Verlauf übersprungen, letzter Eintrag noch keine 15 Min. alt)")
 
         time.sleep(REQUEST_DELAY_SECONDS)
 
