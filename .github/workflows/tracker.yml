@@ -1,9 +1,10 @@
 name: Islandking Login & Tracker
-
 on:
   schedule:
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * x *' # Bleibt für den automatischen GitHub-Intervall erhalten (z.B. alle 6 Stunden)
+  workflow_dispatch: # Ermöglicht den manuellen Start im GitHub-Web
+  repository_dispatch:
+    types: [run-tracker] # Das ist das Signal, auf das cron-job.org hören wird
 
 jobs:
   track:
