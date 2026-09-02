@@ -2,21 +2,37 @@ import os
 import sys
 import json
 import time
+import random
+import base64
 from datetime import datetime, timezone
 
 import requests
 
-# Konfiguration über Umgebungsvariablen (GitHub Secrets)
+# Konfiguration über Umgebungsvariablen (GitHub Secrets bzw. von GitHub
+# Actions automatisch bereitgestellt)
 USERNAME = os.getenv("IK_USER")
 PASSWORD = os.getenv("IK_PASS")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # automatisch von Actions, muss im Workflow durchgereicht werden
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # "owner/repo", von Actions automatisch gesetzt
+
 BASE_URL = "https://islandking.ch"
-TRACKED_FILE = "data/tracked_users.json"
-HISTORY_FILE = "data/history.json"
-REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Abfragen
-HISTORY_RETENTION_DAYS = 90  # alte Verlaufs-Einträge werden danach entfernt
+TRACKED_FILE = "data/tracked_users.json"  # exklusiv fürs Go-Core, normaler Git-Commit
+HISTORY_PATH = "data/history.json"  # GETEILT mit den Browser-Extensions, läuft über die GitHub-API
+REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Islandking-Abfragen
+
+# Müssen mit dem übereinstimmen, was die Browser-Extension für denselben,
+# jetzt gemeinsam genutzten Ort verwendet (Absprache siehe Chat).
+HISTORY_RETENTION_DAYS = 30
+HISTORY_MAX_PER_NAME = 5000
+SCORE_CHECKPOINT_INTERVAL_MS = 20 * 60 * 1000  # Punkte nur alle ~20 Min. neu festhalten
+MAX_MERGE_RETRIES = 3
 
 if not USERNAME or not PASSWORD:
     print("Fehler: Zugangsdaten (IK_USER / IK_PASS) sind nicht gesetzt.")
+    sys.exit(1)
+
+if not GITHUB_TOKEN or not GITHUB_REPOSITORY:
+    print("Fehler: GITHUB_TOKEN / GITHUB_REPOSITORY sind nicht gesetzt (werden für den history.json-Merge über die API gebraucht).")
     sys.exit(1)
 
 
@@ -82,28 +98,121 @@ def lookup_player(session, headers, name):
     }
 
 
-def load_history():
-    """Lädt data/history.json - dieselbe Struktur, die schon die
-    Islandking-Tango-Tracker-Browser-Extension nutzt: {name: [{ts, score,
-    online}, ...]}. Existiert die Datei noch nicht, wird mit einem leeren
-    Verlauf gestartet."""
-    if not os.path.exists(HISTORY_FILE):
-        return {}
-    with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+def last_score_ts(history, name):
+    """Zeitstempel des letzten Eintrags mit echtem (nicht-null) Score für
+    diesen Namen, oder None, falls noch keiner existiert."""
+    for e in reversed(history.get(name, [])):
+        if isinstance(e.get("score"), (int, float)):
+            return e["ts"]
+    return None
 
 
-def append_history(history, name, ts_ms, score, online):
-    """Hängt bei JEDER Abfrage einen neuen Verlaufs-Eintrag an (keine
-    Drosselung mehr) - für eine möglichst genaue Online/Offline-Statistik
-    pro Stunde braucht die Heatmap so viele echte Stichproben wie möglich,
-    nicht nur Statuswechsel. Alte Einträge werden nur noch über
-    HISTORY_RETENTION_DAYS begrenzt, nicht mehr über die Abfrage-Häufigkeit."""
-    entries = history.setdefault(name, [])
-    entries.append({"ts": ts_ms, "score": score, "online": online})
+# ---------------------------------------------------------------------
+# history.json über die GitHub-Contents-API - GETEILT mit den
+# Browser-Extensions (mehrere unabhängige Schreiber gleichzeitig möglich).
+#
+# Anders als tracked_users.json NICHT mehr über das lokale, ausgecheckte
+# Dateisystem + git commit lesen/schreiben: history.json wurde bisher als
+# eine einzige JSON-Zeile ohne Einrückung geschrieben, dadurch hätte selbst
+# ein reiner Git-Rebase bei zwei gleichzeitigen Änderungen an dieser Datei
+# praktisch immer einen Konflikt gemeldet, egal wie inhaltlich sinnvoll die
+# Änderungen eigentlich gewesen wären (git-Merges sind zeilenbasiert). Statt
+# dessen: GET mit sha -> inhaltlich mergen -> PUT mit sha, bei 409 (Konflikt,
+# jemand war schneller) neu GET+merge+PUT - exakt dasselbe Muster, das die
+# Extension für denselben Ort verwendet.
+# ---------------------------------------------------------------------
 
-    cutoff_ms = ts_ms - HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000
-    history[name] = [e for e in entries if e["ts"] >= cutoff_ms]
+
+def github_api_headers():
+    return {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
+def fetch_remote_history():
+    """Holt die aktuelle history.json direkt über die GitHub-Contents-API.
+    Gibt (history_dict, sha) zurück. sha ist None, falls die Datei noch
+    nicht existiert (dann wird beim ersten PUT keins mitgeschickt)."""
+    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/contents/{HISTORY_PATH}"
+    res = requests.get(url, headers=github_api_headers())
+    if res.status_code == 404:
+        return {}, None
+    res.raise_for_status()
+    data = res.json()
+    content = base64.b64decode(data["content"]).decode("utf-8")
+    return json.loads(content), data["sha"]
+
+
+def merge_and_trim(remote_history, pending_entries):
+    """pending_entries: {name: [entry, ...]} - nur die in diesem Lauf neu
+    gesammelten Einträge. Merged sie in remote_history (Duplikate mit
+    identischem name+ts werden verworfen), wendet danach Retention (30
+    Tage) und Cap (max. 5000 Einträge pro Name) an."""
+    merged = {name: list(entries) for name, entries in remote_history.items()}
+    now_ms = int(time.time() * 1000)
+    cutoff_ms = now_ms - HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000
+
+    touched_names = set(pending_entries.keys()) | set(merged.keys())
+
+    for name in touched_names:
+        existing = merged.get(name, [])
+        existing_ts = {e["ts"] for e in existing}
+
+        for entry in pending_entries.get(name, []):
+            if entry["ts"] not in existing_ts:
+                existing.append(entry)
+                existing_ts.add(entry["ts"])
+
+        existing.sort(key=lambda e: e["ts"])
+        existing = [e for e in existing if e["ts"] >= cutoff_ms]
+        if len(existing) > HISTORY_MAX_PER_NAME:
+            existing = existing[-HISTORY_MAX_PER_NAME:]
+
+        merged[name] = existing
+
+    return merged
+
+
+def push_history(merged_history, sha):
+    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/contents/{HISTORY_PATH}"
+    content_str = json.dumps(merged_history, ensure_ascii=False)
+    payload = {
+        "message": "Merge history.json (tracker.py)",
+        "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii"),
+    }
+    if sha:
+        payload["sha"] = sha
+    return requests.put(url, headers=github_api_headers(), json=payload)
+
+
+def sync_history(pending_entries):
+    """GET aktuelle history.json, mergen, PUT mit sha - bei 409 neu
+    GET+merge+PUT, bis zu MAX_MERGE_RETRIES mal mit kurzem Jitter-Delay."""
+    if not pending_entries:
+        print("Keine neuen Verlaufs-Einträge in diesem Lauf, history.json wird nicht angefasst.")
+        return None
+
+    for attempt in range(1, MAX_MERGE_RETRIES + 1):
+        remote_history, sha = fetch_remote_history()
+        merged = merge_and_trim(remote_history, pending_entries)
+        res = push_history(merged, sha)
+
+        if res.status_code in (200, 201):
+            print(f"history.json gemerged & gepusht (Versuch {attempt}/{MAX_MERGE_RETRIES}).")
+            return merged
+
+        if res.status_code == 409:
+            print(f"Konflikt beim Schreiben von history.json (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
+            time.sleep(1 + random.random() * 2)
+            continue
+
+        print(f"Warnung: Unerwarteter Status {res.status_code} beim Schreiben von history.json: {res.text}")
+        return None
+
+    print("Fehler: history.json konnte nach mehreren Versuchen nicht gemerged werden (dauerhafter Konflikt).")
+    return None
 
 
 def run_tracker():
@@ -118,8 +227,11 @@ def run_tracker():
     with open(TRACKED_FILE, "r", encoding="utf-8") as f:
         tracked = json.load(f)
 
-    history = load_history()
-    history_changed = False
+    # Einmaliger Snapshot zu Beginn nur für die Score-Checkpoint-Entscheidung
+    # (ist ein anderer Zweck als der Merge am Ende, der nochmal frisch holt -
+    # kleine Ungenauigkeit hier ist unkritisch, siehe Chat).
+    initial_history, _ = fetch_remote_history()
+    pending_entries = {}  # {name: [entry, ...]} - nur was DIESER Lauf neu produziert
 
     print(f"Prüfe {len(tracked)} Spieler...")
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -140,31 +252,25 @@ def run_tracker():
         # es weder Score noch Online-Status zum Aufzeichnen.
         if result["found"]:
             ts_ms = int(time.time() * 1000)
-            append_history(history, name, ts_ms, result["score"], result["online"])
-            history_changed = True
+            last_ts = last_score_ts(initial_history, name)
+            include_score = last_ts is None or (ts_ms - last_ts) >= SCORE_CHECKPOINT_INTERVAL_MS
+
+            new_entry = {"ts": ts_ms, "score": result["score"] if include_score else None, "online": result["online"]}
+            pending_entries.setdefault(name, []).append(new_entry)
 
         time.sleep(REQUEST_DELAY_SECONDS)
 
+    # tracked_users.json: unverändert exklusiv fürs Go-Core, normaler
+    # lokaler Schreibvorgang + Git-Commit im Workflow.
     with open(TRACKED_FILE, "w", encoding="utf-8") as f:
         json.dump(tracked, f, indent=2, ensure_ascii=False)
 
-    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False)
+    # history.json: geteilt, läuft komplett über die API (siehe oben).
+    sync_history(pending_entries)
 
     found_count = sum(1 for e in tracked if e.get("found"))
     print(f"Fertig: {found_count}/{len(tracked)} gefunden.")
-    print(f"{TRACKED_FILE} und {HISTORY_FILE} aktualisiert.")
-    print(f"history.json inhaltlich verändert: {history_changed}")
-
-    # Für die Commit-Nachricht im Workflow: sichtbar machen, ob history.json
-    # diesmal wirklich einen neuen Eintrag bekommen hat, oder ob es (wegen
-    # der 15-Minuten-Drosselung) nur beim alten Stand blieb - sonst sieht es
-    # in der Commit-Historie so aus, als würde history.json "nicht
-    # funktionieren", obwohl es einfach nur noch nicht dran war.
-    github_output = os.getenv("GITHUB_OUTPUT")
-    if github_output:
-        with open(github_output, "a", encoding="utf-8") as f:
-            f.write(f"history_changed={'true' if history_changed else 'false'}\n")
+    print(f"{TRACKED_FILE} aktualisiert (lokal/Git), history.json über API gemerged.")
 
 
 if __name__ == "__main__":
