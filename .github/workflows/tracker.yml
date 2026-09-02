@@ -8,9 +8,13 @@ on:
 jobs:
   track:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # <--- Das hier ist entscheidend
     steps:
-      - uses: actions/checkout@v4
-
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # ... deine restlichen Steps (Python installieren, Script ausführen, Git Push)
       - name: Python einrichten
         uses: actions/setup-python@v5
         with:
