@@ -1,0 +1,34 @@
+{
+    "id": 339,
+    "username": "Peter",
+    "email": "o-zisler@t-online.de",
+    "roles": [
+        "ROLE_USER"
+    ],
+    "isAdmin": false,
+    "verified": true,
+    "player": {
+        "id": 339,
+        "displayName": "Peter",
+        "score": 335,
+        "rankTitle": "Stabswachtmeister",
+        "rank": {
+            "title": "Stabswachtmeister",
+            "level": 7,
+            "maxLevel": 30,
+            "minAt": 265,
+            "nextAt": 400
+        },
+        "diamonds": 4,
+        "islandCount": 1,
+        "protected": true,
+        "protectionUntil": "2026-09-16T18:57:43+00:00",
+        "protectionScoreLimit": 500,
+        "onVacation": false,
+        "vacationUntil": null,
+        "isPowerUser": false,
+        "powerUserTier": null,
+        "powerUserUntil": null,
+        "tutorialCompleted": true
+    }
+}
