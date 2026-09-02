@@ -1,72 +1,46 @@
 [
   {
     "name": "w0lfzk1nd",
-    "found": true,
-    "id": 9,
-    "score": 5442,
-    "alliance": "OKA",
-    "rank": 3,
-    "online": true,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
   },
   {
     "name": "wantedasa",
-    "found": true,
-    "id": 12,
-    "score": 3191,
-    "alliance": "OKA",
-    "rank": 4,
-    "online": false,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
   },
   {
     "name": "DaneRedbeard",
-    "found": true,
-    "id": 16,
-    "score": 2778,
-    "alliance": "OKA",
-    "rank": 5,
-    "online": true,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
   },
   {
     "name": "ShoneDwarf5358",
-    "found": true,
-    "id": 10,
-    "score": 2628,
-    "alliance": "OKA",
-    "rank": 6,
-    "online": false,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
   },
   {
     "name": "meep.",
-    "found": true,
-    "id": 31,
-    "score": 1927,
-    "alliance": "OKA",
-    "rank": 8,
-    "online": false,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
   },
   {
     "name": "Dlsamo",
-    "found": true,
-    "id": 11,
-    "score": 1888,
-    "alliance": "OKA",
-    "rank": 9,
-    "online": false,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
   },
   {
     "name": "andi-a-aus-o",
-    "found": true,
-    "id": 5,
-    "score": 1169,
-    "alliance": "OKA",
-    "rank": 20,
-    "online": true,
-    "lastChecked": "2026-09-02T19:04:23Z"
+    "found": false
+  },
+  {
+    "name": "8DX247",
+    "found": false
+  },
+  {
+    "name": "Rog",
+    "found": false
+  },
+  {
+    "name": "SxnicAela",
+    "found": false
+  },
+  {
+    "name": "grimaldo",
+    "found": false
   }
 ]
