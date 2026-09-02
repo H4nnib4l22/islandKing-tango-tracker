@@ -14,7 +14,6 @@ TRACKED_FILE = "data/tracked_users.json"
 HISTORY_FILE = "data/history.json"
 REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Abfragen
 HISTORY_RETENTION_DAYS = 90  # alte Verlaufs-Einträge werden danach entfernt
-HISTORY_MIN_INTERVAL_MS = 15 * 60 * 1000  # neuer Verlaufs-Eintrag höchstens alle 15 Min. pro Name
 
 if not USERNAME or not PASSWORD:
     print("Fehler: Zugangsdaten (IK_USER / IK_PASS) sind nicht gesetzt.")
@@ -94,30 +93,12 @@ def load_history():
         return json.load(f)
 
 
-def should_record_history(history, name, ts_ms, online):
-    """Ein neuer Verlaufs-Eintrag wird angelegt, wenn ENTWEDER
-    HISTORY_MIN_INTERVAL_MS seit dem letzten Eintrag vergangen sind ODER
-    sich der Online-Status seit dem letzten Eintrag geändert hat.
-
-    Grund für die Online-Ausnahme: Ohne sie würde auch der Online-Status
-    auf die 15-Minuten-Taktung gedrosselt, obwohl die Heatmap gerade von
-    möglichst genauen Online/Offline-Übergängen lebt - ein tatsächlicher
-    Wechsel soll deshalb immer sofort festgehalten werden, nicht erst
-    beim nächsten 15-Minuten-Fenster. Nur das wiederholte Aufzeichnen von
-    "ist immer noch online/offline" wird gedrosselt."""
-    entries = history.get(name)
-    if not entries:
-        return True
-    last = entries[-1]
-    if last.get("online") != online:
-        return True
-    return (ts_ms - last["ts"]) >= HISTORY_MIN_INTERVAL_MS
-
-
 def append_history(history, name, ts_ms, score, online):
-    """Hängt einen neuen Verlaufs-Eintrag an, statt den letzten Stand zu
-    überschreiben - genau das, was fürs spätere Bauen von Heatmap/Punkte-
-    Graph gebraucht wird (ein einzelner Zeitstempel reicht dafür nicht)."""
+    """Hängt bei JEDER Abfrage einen neuen Verlaufs-Eintrag an (keine
+    Drosselung mehr) - für eine möglichst genaue Online/Offline-Statistik
+    pro Stunde braucht die Heatmap so viele echte Stichproben wie möglich,
+    nicht nur Statuswechsel. Alte Einträge werden nur noch über
+    HISTORY_RETENTION_DAYS begrenzt, nicht mehr über die Abfrage-Häufigkeit."""
     entries = history.setdefault(name, [])
     entries.append({"ts": ts_ms, "score": score, "online": online})
 
@@ -155,17 +136,12 @@ def run_tracker():
         status = "gefunden" if result["found"] else "NICHT gefunden"
         print(f"- {name}: {status}")
 
-        # Verlaufs-Eintrag nur bei tatsächlichem Treffer UND wenn seit dem
-        # letzten Eintrag mind. 15 Min. vergangen sind (siehe
-        # should_record_history) - ohne Treffer gibt es ohnehin weder Score
-        # noch Online-Status zum Aufzeichnen.
+        # Verlaufs-Eintrag nur bei tatsächlichem Treffer - ohne Treffer gibt
+        # es weder Score noch Online-Status zum Aufzeichnen.
         if result["found"]:
             ts_ms = int(time.time() * 1000)
-            if should_record_history(history, name, ts_ms, result["online"]):
-                append_history(history, name, ts_ms, result["score"], result["online"])
-                history_changed = True
-            else:
-                print(f"    (Verlauf übersprungen, letzter Eintrag noch keine 15 Min. alt & Status unverändert)")
+            append_history(history, name, ts_ms, result["score"], result["online"])
+            history_changed = True
 
         time.sleep(REQUEST_DELAY_SECONDS)
 
