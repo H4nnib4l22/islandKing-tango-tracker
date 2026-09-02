@@ -1,0 +1,36 @@
+name: Islandking Login & Tracker
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Abhängigkeiten installieren
+        run: |
+          pip install playwright requests
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Tracker mit Login ausführen
+        env:
+          IK_USER: ${{ secrets.IK_USER }}
+          IK_PASS: ${{ secrets.IK_PASS }}
+        run: python tracker.py
+
+      - name: Speichern in GitHub
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add data/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-sync tango data [skip ci]" && git push)
