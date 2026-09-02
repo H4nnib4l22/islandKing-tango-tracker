@@ -52,8 +52,26 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           git add data/tracked_users.json
-          git diff --cached --quiet || git commit -m "Update tracked_users.json"
-          git push
+          if git diff --cached --quiet; then
+            echo "Keine Aenderungen an tracked_users.json."
+            exit 0
+          fi
+          git commit -m "Update tracked_users.json"
+
+          # Zwischen Checkout und Push kann der Remote-Branch weitergelaufen
+          # sein (anderer Run, oder ein manueller/API-Commit anderswo im
+          # Repo) - "fetch first" ohne Retry wuerde den ganzen Job scheitern
+          # lassen. Rebase + kurzer Retry, da nur diese Datei hier bewegt
+          # wird und Konflikte damit unwahrscheinlich sind.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push fehlgeschlagen (Versuch $attempt/3), rebase gegen origin/main und erneut versuchen..."
+            git pull --rebase origin main
+          done
+          echo "Push nach 3 Versuchen weiterhin fehlgeschlagen."
+          exit 1
         # history.json wird nicht mehr hier committet - das laeuft
         # inzwischen komplett ueber die GitHub-API in tracker.py
         # (sync_history), lokal wird die Datei gar nicht mehr angefasst.
