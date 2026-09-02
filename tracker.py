@@ -58,3 +58,15 @@ def run_tracker():
 
 if __name__ == "__main__":
     run_tracker()
+
+import json
+from datetime import datetime
+
+# Nach erfolgreichem user_data Abruf:
+os.makedirs("data", exist_ok=True)
+filename = f"data/tracking_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+
+with open(filename, "w", encoding="utf-8") as f:
+    json.dump(user_data, f, indent=4, ensure_ascii=False)
+
+print(f"Daten erfolgreich in {filename} gespeichert.")
