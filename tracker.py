@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 USERNAME = os.environ.get("IK_USER")
 PASSWORD = os.environ.get("IK_PASS")
-TARGETS = ["ZielSpieler1", "ZielSpieler2"] # Hier deine Tangos eintragen
+TARGETS = ["ZielSpieler1", "ZielSpieler2"]
 
 os.makedirs("data", exist_ok=True)
 
@@ -18,18 +18,21 @@ with sync_playwright() as p:
         print("Navigiere zur Login-Seite...")
         page.goto("https://islandking.ch/login", timeout=60000)
         
+        # Warten, bis das erste Eingabefeld auf der Seite erscheint
+        print("Warte, bis das Login-Formular geladen ist...")
+        page.wait_for_selector("input", timeout=15000)
+        
         print("Fülle Login-Daten aus...")
-        # Suche über den Platzhalter-Text aus deinem Screenshot
-        page.fill('input[placeholder="Benutzername"]', USERNAME)
-        page.fill('input[placeholder="Passwort"]', PASSWORD)
+        # Wir greifen hier über den Typ oder die Position zu, falls der Platzhalter abweicht
+        page.locator('input[type="text"], input[type="email"]').first.fill(USERNAME)
+        page.locator('input[type="password"]').first.fill(PASSWORD)
         
         print("Klicke auf Einloggen...")
-        # Klick auf den blauen Button mit dem Text "Einloggen"
+        # Klick auf den Einloggen-Button (egal ob per Rolle oder Text selektiert)
         page.get_by_role("button", name="Einloggen").click()
         
         print("Warte auf erfolgreichen Login...")
-        # Warten, bis nach dem Login die Hauptseite/Dashboard erreicht ist
-        page.wait_for_url("**/game**", timeout=15000) # Falls die Hauptseite anders heißt, passen wir das an
+        page.wait_for_load_state("networkidle", timeout=15000)
 
         print("Lade Tango-Daten über die API...")
         for name in TARGETS:
