@@ -18,17 +18,15 @@ with sync_playwright() as p:
         print("Navigiere zur Login-Seite...")
         page.goto("https://islandking.ch/login", timeout=60000)
         
-        # Warten, bis das erste Eingabefeld auf der Seite erscheint
-        print("Warte, bis das Login-Formular geladen ist...")
-        page.wait_for_selector("input", timeout=15000)
+        print("Warte, bis die Login-Seite vollständig da ist...")
+        page.wait_for_load_state("domcontentloaded")
         
         print("Fülle Login-Daten aus...")
-        # Wir greifen hier über den Typ oder die Position zu, falls der Platzhalter abweicht
-        page.locator('input[type="text"], input[type="email"]').first.fill(USERNAME)
-        page.locator('input[type="password"]').first.fill(PASSWORD)
+        # Nutzt Playwrights native Platzhalter-Erkennung (exakt wie im Screenshot)
+        page.get_by_placeholder("Benutzername").fill(USERNAME)
+        page.get_by_placeholder("Passwort").fill(PASSWORD)
         
         print("Klicke auf Einloggen...")
-        # Klick auf den Einloggen-Button (egal ob per Rolle oder Text selektiert)
         page.get_by_role("button", name="Einloggen").click()
         
         print("Warte auf erfolgreichen Login...")
@@ -70,7 +68,7 @@ with sync_playwright() as p:
         print("Tracking erfolgreich abgeschlossen.")
 
     except Exception as e:
-        print(f"Fehler beim Tracking aufgetreten:")
+        print("Fehler beim Tracking aufgetreten:")
         traceback.print_exc()
         raise e
     finally:
