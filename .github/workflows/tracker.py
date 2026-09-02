@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 USERNAME = os.environ.get("IK_USER")
 PASSWORD = os.environ.get("IK_PASS")
-TARGETS = ["ZielSpieler1", "ZielSpieler2"]
+TARGETS = ["ZielSpieler1", "ZielSpieler2"] # Hier deine Tangos eintragen
 
 os.makedirs("data", exist_ok=True)
 
@@ -19,13 +19,19 @@ with sync_playwright() as p:
         page.goto("https://islandking.ch/login", timeout=60000)
         
         print("Fülle Login-Daten aus...")
-        page.fill('input[name="email"]', USERNAME)
-        page.fill('input[name="password"]', PASSWORD)
-        page.click('button[type="submit"]')
+        # Suche über den Platzhalter-Text aus deinem Screenshot
+        page.fill('input[placeholder="Benutzername"]', USERNAME)
+        page.fill('input[placeholder="Passwort"]', PASSWORD)
         
-        print("Warte auf Weiterleitung...")
-        page.wait_for_load_state("networkidle", timeout=15000)
+        print("Klicke auf Einloggen...")
+        # Klick auf den blauen Button mit dem Text "Einloggen"
+        page.get_by_role("button", name="Einloggen").click()
+        
+        print("Warte auf erfolgreichen Login...")
+        # Warten, bis nach dem Login die Hauptseite/Dashboard erreicht ist
+        page.wait_for_url("**/game**", timeout=15000) # Falls die Hauptseite anders heißt, passen wir das an
 
+        print("Lade Tango-Daten über die API...")
         for name in TARGETS:
             api_url = f"https://islandking.ch/api/rankings?q={name}"
             response = page.request.get(api_url)
@@ -58,6 +64,7 @@ with sync_playwright() as p:
             
             with open(history_file, "w", encoding="utf-8") as f:
                 json.dump(history, f, ensure_ascii=False, indent=2)
+        print("Tracking erfolgreich abgeschlossen.")
 
     except Exception as e:
         print(f"Fehler beim Tracking aufgetreten:")
