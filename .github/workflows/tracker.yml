@@ -6,6 +6,16 @@ on:
   repository_dispatch:
     types: [run-tracker] # Das ist das Signal, auf das cron-job.org hören wird
 
+concurrency:
+  group: tracker-run
+  cancel-in-progress: false
+  # Verhindert, dass sich zwei Laeufe ueberlappen (cron-job.org triggert alle
+  # 2 Min. per repository_dispatch) - ohne das koennten zwei parallele Runs
+  # sich beim Schreiben von tracked_users.json gegenseitig ueberschreiben.
+  # history.json ist seit dem API-basierten Merge (sync_history in
+  # tracker.py) davon nicht mehr betroffen, tracked_users.json laeuft aber
+  # weiterhin ueber lokalen Git-Commit.
+
 jobs:
   track:
     runs-on: ubuntu-latest
@@ -30,16 +40,20 @@ jobs:
         env:
           IK_USER: ${{ secrets.IK_USER }}
           IK_PASS: ${{ secrets.IK_PASS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Wird fuer den history.json-Merge ueber die GitHub-Contents-API
+          # gebraucht (sync_history in tracker.py) - anders als
+          # GITHUB_REPOSITORY nicht automatisch an Steps durchgereicht,
+          # muss hier explizit gesetzt werden.
         run: python tracker.py
 
       - name: Commit and push changes
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add data/
+          git add data/tracked_users.json
           git diff --cached --quiet || git commit -m "Update tracked_users.json"
           git push
-        # (Vorher gab es hier zwei fast identische Commit-Schritte
-        # hintereinander - der zweite lief faktisch nie, da nach dem
-        # ersten committeten Schritt nichts mehr offen war. Zu einem
-        # zusammengefasst.)
+        # history.json wird nicht mehr hier committet - das laeuft
+        # inzwischen komplett ueber die GitHub-API in tracker.py
+        # (sync_history), lokal wird die Datei gar nicht mehr angefasst.
