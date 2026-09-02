@@ -1,6 +1,7 @@
 import os
 import sys
-import requests
+import json
+from datetime import datetime
 
 # Konfiguration über Umgebungsszenarien (z. B. GitHub Secrets)
 USERNAME = os.getenv("IK_USER")
@@ -12,7 +13,7 @@ if not USERNAME or not PASSWORD:
     sys.exit(1)
 
 def run_tracker():
-    session = requests.Session()
+    session = requests.Session() if 'requests' in sys.modules else __import__('requests').Session()
     
     # 1. API-Login durchführen
     print("Authentifiziere bei Islandking...")
@@ -42,7 +43,7 @@ def run_tracker():
         "Content-Type": "application/json"
     }
     
-    # 3. Daten abrufen / Tracking ausführen
+    # 3. Daten abrufen
     print("Rufe Spieldaten ab...")
     data_response = session.get(f"{BASE_URL}/api/me", headers=headers)
     
@@ -54,19 +55,15 @@ def run_tracker():
     print("Daten erfolgreich abgerufen:")
     print(user_data)
     
-    # Hier kannst du die Logik für das Speichern oder Verarbeiten der Daten ergänzen
+    # 4. Daten lokal im data/-Ordner speichern
+    os.makedirs("data", exist_ok=True)
+    filename = f"data/tracking_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(user_data, f, indent=4, ensure_ascii=False)
+
+    print(f"Daten erfolgreich in {filename} gespeichert.")
 
 if __name__ == "__main__":
+    import requests
     run_tracker()
-
-import json
-from datetime import datetime
-
-# Nach erfolgreichem user_data Abruf:
-os.makedirs("data", exist_ok=True)
-filename = f"data/tracking_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-
-with open(filename, "w", encoding="utf-8") as f:
-    json.dump(user_data, f, indent=4, ensure_ascii=False)
-
-print(f"Daten erfolgreich in {filename} gespeichert.")
