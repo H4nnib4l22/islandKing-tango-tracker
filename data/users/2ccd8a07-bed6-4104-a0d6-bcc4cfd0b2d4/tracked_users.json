@@ -89,10 +89,14 @@
   },
   {
     "name": "Schelmi",
-    "found": false
+    "found": true,
+    "score": 9831,
+    "online": false
   },
   {
     "name": "Hardscore",
-    "found": false
+    "found": true,
+    "score": 839,
+    "online": false
   }
 ]
