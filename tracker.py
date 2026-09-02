@@ -11,7 +11,9 @@ USERNAME = os.getenv("IK_USER")
 PASSWORD = os.getenv("IK_PASS")
 BASE_URL = "https://islandking.ch"
 TRACKED_FILE = "data/tracked_users.json"
+HISTORY_FILE = "data/history.json"
 REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Abfragen
+HISTORY_RETENTION_DAYS = 90  # alte Verlaufs-Einträge werden danach entfernt
 
 if not USERNAME or not PASSWORD:
     print("Fehler: Zugangsdaten (IK_USER / IK_PASS) sind nicht gesetzt.")
@@ -80,6 +82,28 @@ def lookup_player(session, headers, name):
     }
 
 
+def load_history():
+    """Lädt data/history.json - dieselbe Struktur, die schon die
+    Islandking-Tango-Tracker-Browser-Extension nutzt: {name: [{ts, score,
+    online}, ...]}. Existiert die Datei noch nicht, wird mit einem leeren
+    Verlauf gestartet."""
+    if not os.path.exists(HISTORY_FILE):
+        return {}
+    with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def append_history(history, name, ts_ms, score, online):
+    """Hängt einen neuen Verlaufs-Eintrag an, statt den letzten Stand zu
+    überschreiben - genau das, was fürs spätere Bauen von Heatmap/Punkte-
+    Graph gebraucht wird (ein einzelner Zeitstempel reicht dafür nicht)."""
+    entries = history.setdefault(name, [])
+    entries.append({"ts": ts_ms, "score": score, "online": online})
+
+    cutoff_ms = ts_ms - HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000
+    history[name] = [e for e in entries if e["ts"] >= cutoff_ms]
+
+
 def run_tracker():
     session = requests.Session()
     token = login(session)
@@ -92,8 +116,10 @@ def run_tracker():
     with open(TRACKED_FILE, "r", encoding="utf-8") as f:
         tracked = json.load(f)
 
+    history = load_history()
+
     print(f"Prüfe {len(tracked)} Spieler...")
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for entry in tracked:
         name = entry.get("name")
@@ -102,18 +128,28 @@ def run_tracker():
 
         result = lookup_player(session, headers, name)
         entry.update(result)
-        entry["lastChecked"] = now
+        entry["lastChecked"] = now_iso
 
         status = "gefunden" if result["found"] else "NICHT gefunden"
         print(f"- {name}: {status}")
+
+        # Verlaufs-Eintrag nur bei tatsächlichem Treffer - ohne Treffer gibt
+        # es weder Score noch Online-Status zum Aufzeichnen (analog zur
+        # Browser-Extension, die genauso nur bei result.found history schreibt).
+        if result["found"]:
+            append_history(history, name, int(time.time() * 1000), result["score"], result["online"])
 
         time.sleep(REQUEST_DELAY_SECONDS)
 
     with open(TRACKED_FILE, "w", encoding="utf-8") as f:
         json.dump(tracked, f, indent=2, ensure_ascii=False)
 
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False)
+
     found_count = sum(1 for e in tracked if e.get("found"))
-    print(f"Fertig: {found_count}/{len(tracked)} gefunden. {TRACKED_FILE} aktualisiert.")
+    print(f"Fertig: {found_count}/{len(tracked)} gefunden.")
+    print(f"{TRACKED_FILE} und {HISTORY_FILE} aktualisiert.")
 
 
 if __name__ == "__main__":
