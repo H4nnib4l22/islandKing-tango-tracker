@@ -94,16 +94,24 @@ def load_history():
         return json.load(f)
 
 
-def should_record_history(history, name, ts_ms):
-    """Nur alle HISTORY_MIN_INTERVAL_MS einen neuen Verlaufs-Eintrag
-    anlegen, nicht bei jedem einzelnen Lauf (der Workflow läuft ja u.U.
-    alle paar Minuten über cron-job.org). Der aktuelle Stand in
-    tracked_users.json wird davon nicht berührt - der wird immer
-    aktualisiert, nur die Historie wird gedrosselt."""
+def should_record_history(history, name, ts_ms, online):
+    """Ein neuer Verlaufs-Eintrag wird angelegt, wenn ENTWEDER
+    HISTORY_MIN_INTERVAL_MS seit dem letzten Eintrag vergangen sind ODER
+    sich der Online-Status seit dem letzten Eintrag geändert hat.
+
+    Grund für die Online-Ausnahme: Ohne sie würde auch der Online-Status
+    auf die 15-Minuten-Taktung gedrosselt, obwohl die Heatmap gerade von
+    möglichst genauen Online/Offline-Übergängen lebt - ein tatsächlicher
+    Wechsel soll deshalb immer sofort festgehalten werden, nicht erst
+    beim nächsten 15-Minuten-Fenster. Nur das wiederholte Aufzeichnen von
+    "ist immer noch online/offline" wird gedrosselt."""
     entries = history.get(name)
     if not entries:
         return True
-    return (ts_ms - entries[-1]["ts"]) >= HISTORY_MIN_INTERVAL_MS
+    last = entries[-1]
+    if last.get("online") != online:
+        return True
+    return (ts_ms - last["ts"]) >= HISTORY_MIN_INTERVAL_MS
 
 
 def append_history(history, name, ts_ms, score, online):
@@ -130,6 +138,7 @@ def run_tracker():
         tracked = json.load(f)
 
     history = load_history()
+    history_changed = False
 
     print(f"Prüfe {len(tracked)} Spieler...")
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -152,10 +161,11 @@ def run_tracker():
         # noch Online-Status zum Aufzeichnen.
         if result["found"]:
             ts_ms = int(time.time() * 1000)
-            if should_record_history(history, name, ts_ms):
+            if should_record_history(history, name, ts_ms, result["online"]):
                 append_history(history, name, ts_ms, result["score"], result["online"])
+                history_changed = True
             else:
-                print(f"    (Verlauf übersprungen, letzter Eintrag noch keine 15 Min. alt)")
+                print(f"    (Verlauf übersprungen, letzter Eintrag noch keine 15 Min. alt & Status unverändert)")
 
         time.sleep(REQUEST_DELAY_SECONDS)
 
@@ -168,6 +178,17 @@ def run_tracker():
     found_count = sum(1 for e in tracked if e.get("found"))
     print(f"Fertig: {found_count}/{len(tracked)} gefunden.")
     print(f"{TRACKED_FILE} und {HISTORY_FILE} aktualisiert.")
+    print(f"history.json inhaltlich verändert: {history_changed}")
+
+    # Für die Commit-Nachricht im Workflow: sichtbar machen, ob history.json
+    # diesmal wirklich einen neuen Eintrag bekommen hat, oder ob es (wegen
+    # der 15-Minuten-Drosselung) nur beim alten Stand blieb - sonst sieht es
+    # in der Commit-Historie so aus, als würde history.json "nicht
+    # funktionieren", obwohl es einfach nur noch nicht dran war.
+    github_output = os.getenv("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as f:
+            f.write(f"history_changed={'true' if history_changed else 'false'}\n")
 
 
 if __name__ == "__main__":
