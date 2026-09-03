@@ -1,6 +1,8 @@
 [
   {
     "name": "Bangee",
-    "found": false
+    "found": true,
+    "score": 1447,
+    "online": false
   }
 ]
