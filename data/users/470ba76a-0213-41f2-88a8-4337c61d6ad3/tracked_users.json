@@ -5,7 +5,7 @@
     "alliance": "OKA",
     "score": 3201,
     "rank": 4,
-    "online": false
+    "online": true
   },
   {
     "name": "ShoneDwarf5358",
@@ -29,6 +29,6 @@
     "alliance": "OKA",
     "score": 2802,
     "rank": 5,
-    "online": true
+    "online": false
   }
 ]
