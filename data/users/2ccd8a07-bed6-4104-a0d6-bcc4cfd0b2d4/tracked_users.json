@@ -3,7 +3,7 @@
     "name": "DaneRedbeard",
     "found": true,
     "alliance": "OKA",
-    "score": 2789,
+    "score": 2792,
     "rank": 5,
     "online": false
   },
@@ -19,7 +19,7 @@
     "name": "w0lfzk1nd",
     "found": true,
     "alliance": "OKA",
-    "score": 5529,
+    "score": 5543,
     "rank": 3,
     "online": false
   },
@@ -28,7 +28,7 @@
     "found": true,
     "alliance": "OKA",
     "score": 1172,
-    "rank": 20,
+    "rank": 21,
     "online": false
   },
   {
@@ -43,7 +43,7 @@
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
-    "score": 3193,
+    "score": 3195,
     "rank": 4,
     "online": false
   },
@@ -90,19 +90,19 @@
   {
     "name": "Schelmi",
     "found": true,
-    "score": 9831,
+    "score": 9835,
     "online": false
   },
   {
     "name": "Hardscore",
     "found": true,
-    "score": 841,
-    "online": false
+    "score": 843,
+    "online": true
   },
   {
     "name": "OscarZulu",
     "found": true,
-    "score": 1107,
+    "score": 1209,
     "online": true
   }
 ]
