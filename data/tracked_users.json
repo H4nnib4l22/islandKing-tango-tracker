@@ -4,189 +4,128 @@
     "found": true,
     "alliance": "OKA",
     "score": 5631,
-    "rank": 3,
-    "id": 9,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 3
   },
   {
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
     "score": 3207,
-    "rank": 4,
-    "id": 12,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 4
   },
   {
     "name": "DaneRedbeard",
     "found": true,
     "alliance": "OKA",
     "score": 2802,
-    "rank": 5,
-    "id": 16,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 5
   },
   {
     "name": "ShoneDwarf5358",
     "found": true,
     "alliance": "OKA",
     "score": 2628,
-    "rank": 6,
-    "id": 10,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 6
   },
   {
     "name": "meep.",
     "found": true,
     "alliance": "OKA",
     "score": 1927,
-    "rank": 9,
-    "id": 31,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 9
   },
   {
     "name": "Dlsamo",
     "found": true,
     "alliance": "OKA",
     "score": 2027,
-    "rank": 8,
-    "id": 11,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 8
   },
   {
     "name": "andi-a-aus-o",
     "found": true,
     "alliance": "OKA",
     "score": 1185,
-    "rank": 21,
-    "id": 5,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
-  },
-  {
-    "name": "8DX247",
-    "found": true,
-    "alliance": "SLG",
-    "score": 1319,
-    "rank": 18,
-    "id": 75,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 21
   },
   {
     "name": "Rog",
     "found": true,
     "alliance": "FR",
     "score": 1291,
-    "rank": 19,
-    "id": 107,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 19
   },
   {
     "name": "SxnicAela",
     "found": true,
     "alliance": "SLG",
     "score": 1888,
-    "rank": 11,
-    "online": false,
-    "id": 54,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 11
   },
   {
     "name": "grimaldo",
     "found": true,
     "alliance": "GTdW",
     "score": 1259,
-    "rank": 20,
-    "id": 251,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 20
   },
   {
     "name": "Gugone",
     "found": true,
     "alliance": ">> SF <<",
     "score": 278,
-    "rank": 111,
-    "id": 319,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 111
   },
   {
     "name": "Dentina",
     "found": true,
-    "id": 45,
-    "score": 232,
     "alliance": ">> SF <<",
-    "rank": 130,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "score": 232,
+    "rank": 130
   },
   {
     "name": "Bangee",
     "found": true,
-    "id": 2,
     "score": 1447,
-    "alliance": null,
-    "rank": 15,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "rank": 15
   },
   {
     "name": "Hardscore",
     "found": true,
-    "id": 139,
-    "score": 860,
     "alliance": ">> SF <<",
+    "score": 860,
     "rank": 35,
-    "online": true,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "online": true
   },
   {
     "name": "OscarZulu",
     "found": true,
-    "id": 309,
-    "score": 1335,
     "alliance": ">> SF <<",
+    "score": 1335,
     "rank": 17,
-    "online": true,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "online": true
   },
   {
     "name": "Peter",
     "found": true,
-    "id": 339,
-    "score": 347,
     "alliance": "OKA",
+    "score": 347,
     "rank": 90,
-    "online": true,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "online": true
   },
   {
     "name": "Pitbullbeisser",
     "found": true,
-    "id": 241,
-    "score": 646,
     "alliance": "SKU",
-    "rank": 38,
-    "online": false,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "score": 646,
+    "rank": 38
   },
   {
     "name": "Schelmi",
     "found": true,
-    "id": 64,
-    "score": 9952,
     "alliance": ">> SF <<",
+    "score": 9952,
     "rank": 1,
-    "online": true,
-    "lastChecked": "2026-09-03T17:40:34Z"
+    "online": true
   }
 ]
