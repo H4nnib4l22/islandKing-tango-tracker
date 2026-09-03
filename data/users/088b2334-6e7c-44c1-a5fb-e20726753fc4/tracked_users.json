@@ -13,7 +13,7 @@
     "alliance": "OKA",
     "score": 5632,
     "rank": 3,
-    "online": false
+    "online": true
   },
   {
     "name": "Peter",
@@ -28,7 +28,7 @@
     "found": true,
     "alliance": "SKU",
     "score": 650,
-    "rank": 38,
+    "rank": 39,
     "online": false
   }
 ]
