@@ -2,10 +2,8 @@
   {
     "name": "Bangee",
     "found": true,
-    "alliance": null,
     "score": 1447,
-    "rank": 15,
-    "online": false
+    "rank": 15
   },
   {
     "name": "w0lfzk1nd",
@@ -20,15 +18,13 @@
     "found": true,
     "alliance": "OKA",
     "score": 347,
-    "rank": 91,
-    "online": false
+    "rank": 91
   },
   {
     "name": "Pitbullbeisser",
     "found": true,
     "alliance": "SKU",
     "score": 650,
-    "rank": 39,
-    "online": false
+    "rank": 39
   }
 ]
