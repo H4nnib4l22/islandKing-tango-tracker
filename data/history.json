@@ -2626,9 +2626,9 @@
       "ts": 1788447753475
     },
     {
-      "ts": 1788447870676,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447870676
     }
   ],
   "DaneRedbeard": [
@@ -5333,9 +5333,9 @@
       "ts": 1788447747404
     },
     {
-      "ts": 1788447864645,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447864645
     }
   ],
   "Dlsamo": [
@@ -7965,9 +7965,9 @@
       "ts": 1788447751032
     },
     {
-      "ts": 1788447868290,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447868290
     }
   ],
   "Rog": [
@@ -10607,9 +10607,9 @@
       "ts": 1788447754689
     },
     {
-      "ts": 1788447871882,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447871882
     }
   ],
   "ShoneDwarf5358": [
@@ -13324,9 +13324,9 @@
       "ts": 1788447748615
     },
     {
-      "ts": 1788447865850,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447865850
     }
   ],
   "SxnicAela": [
@@ -15951,9 +15951,9 @@
       "ts": 1788447755894
     },
     {
-      "ts": 1788447873089,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447873089
     }
   ],
   "andi-a-aus-o": [
@@ -18603,9 +18603,9 @@
       "ts": 1788447752243
     },
     {
-      "ts": 1788447869492,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788447869492
     }
   ],
   "grimaldo": [
@@ -21230,9 +21230,9 @@
       "ts": 1788447757101
     },
     {
-      "ts": 1788447874278,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447874278
     }
   ],
   "meep.": [
@@ -23867,9 +23867,9 @@
       "ts": 1788447749822
     },
     {
-      "ts": 1788447867047,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447867047
     }
   ],
   "w0lfzk1nd": [
@@ -26554,9 +26554,9 @@
       "ts": 1788447744985
     },
     {
-      "ts": 1788447862198,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788447862198
     }
   ],
   "wantedasa": [
@@ -29196,9 +29196,9 @@
       "ts": 1788447746201
     },
     {
-      "ts": 1788447863436,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447863436
     }
   ],
   "Schelmi": [
@@ -31523,9 +31523,9 @@
       "ts": 1788447761985
     },
     {
-      "ts": 1788447879087,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788447879087
     }
   ],
   "Hardscore": [
@@ -33850,9 +33850,9 @@
       "ts": 1788447759563
     },
     {
-      "ts": 1788447876679,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788447876679
     }
   ],
   "OscarZulu": [
@@ -36137,9 +36137,9 @@
       "ts": 1788447760774
     },
     {
-      "ts": 1788447877875,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788447877875
     }
   ],
   "Bangee": [
@@ -36789,9 +36789,9 @@
       "ts": 1788447758336
     },
     {
-      "ts": 1788447875478,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788447875478
     }
   ]
 }
