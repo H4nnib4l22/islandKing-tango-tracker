@@ -5,77 +5,109 @@
     "alliance": "OKA",
     "score": 5631,
     "rank": 3,
-    "online": true
+    "online": false,
+    "id": 9,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
     "score": 3207,
-    "rank": 4
+    "rank": 4,
+    "id": 12,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "DaneRedbeard",
     "found": true,
     "alliance": "OKA",
     "score": 2802,
-    "rank": 5
+    "rank": 5,
+    "id": 16,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "ShoneDwarf5358",
     "found": true,
     "alliance": "OKA",
     "score": 2628,
-    "rank": 6
+    "rank": 6,
+    "id": 10,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "meep.",
     "found": true,
     "alliance": "OKA",
     "score": 1927,
-    "rank": 9
+    "rank": 9,
+    "id": 31,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Dlsamo",
     "found": true,
     "alliance": "OKA",
     "score": 2027,
-    "rank": 8
+    "rank": 8,
+    "id": 11,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "andi-a-aus-o",
     "found": true,
     "alliance": "OKA",
     "score": 1185,
-    "rank": 21
+    "rank": 21,
+    "id": 5,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Rog",
     "found": true,
     "alliance": "FR",
-    "score": 1291,
+    "score": 1292,
     "rank": 19,
-    "online": true
+    "online": true,
+    "id": 107,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Gugone",
     "found": true,
     "alliance": ">> SF <<",
     "score": 278,
-    "rank": 111
+    "rank": 111,
+    "id": 319,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Dentina",
     "found": true,
     "alliance": ">> SF <<",
     "score": 232,
-    "rank": 130
+    "rank": 130,
+    "id": 45,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Bangee",
     "found": true,
     "score": 1447,
-    "rank": 15
+    "rank": 15,
+    "id": 2,
+    "alliance": null,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Hardscore",
@@ -83,7 +115,9 @@
     "alliance": ">> SF <<",
     "score": 860,
     "rank": 35,
-    "online": true
+    "online": true,
+    "id": 139,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "OscarZulu",
@@ -91,7 +125,9 @@
     "alliance": ">> SF <<",
     "score": 1335,
     "rank": 17,
-    "online": true
+    "online": true,
+    "id": 309,
+    "lastChecked": "2026-09-03T17:53:19Z"
   },
   {
     "name": "Schelmi",
@@ -99,6 +135,63 @@
     "alliance": ">> SF <<",
     "score": 9952,
     "rank": 1,
-    "online": true
+    "online": true,
+    "id": 64,
+    "lastChecked": "2026-09-03T17:53:19Z"
+  },
+  {
+    "name": "8DX247",
+    "found": true,
+    "id": 75,
+    "score": 1319,
+    "alliance": "SLG",
+    "rank": 18,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z",
+    "origin": "extension"
+  },
+  {
+    "name": "Peter",
+    "found": true,
+    "id": 339,
+    "score": 347,
+    "alliance": "OKA",
+    "rank": 91,
+    "online": true,
+    "lastChecked": "2026-09-03T17:53:19Z",
+    "origin": "extension"
+  },
+  {
+    "name": "Pitbullbeisser",
+    "found": true,
+    "id": 241,
+    "score": 646,
+    "alliance": "SKU",
+    "rank": 38,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z",
+    "origin": "extension"
+  },
+  {
+    "name": "SxnicAela",
+    "found": true,
+    "id": 54,
+    "score": 1888,
+    "alliance": "SLG",
+    "rank": 11,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z",
+    "origin": "extension"
+  },
+  {
+    "name": "grimaldo",
+    "found": true,
+    "id": 251,
+    "score": 1259,
+    "alliance": "GTdW",
+    "rank": 20,
+    "online": false,
+    "lastChecked": "2026-09-03T17:53:19Z",
+    "origin": "extension"
   }
 ]
