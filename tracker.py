@@ -299,16 +299,25 @@ def run_tracker():
         time.sleep(REQUEST_DELAY_SECONDS)
 
     if extra_names:
-        print(f"Zusätzlich {len(extra_names)} Namen nur aus Extension-Watchlists (nur für history.json, nicht in tracked_users.json): {', '.join(extra_names)}")
+        print(f"Zusätzlich {len(extra_names)} Namen nur aus Extension-Watchlists: {', '.join(extra_names)}")
         for name in extra_names:
             result = lookup_player(session, headers, name)
             status = "gefunden" if result["found"] else "NICHT gefunden"
             print(f"- {name} (extra): {status}")
             record_result(name, result, initial_history, pending_entries)
+            # Landet jetzt mit in tracked_users.json (nicht mehr nur in
+            # history.json) - sonst sieht die Extension nie die von hier
+            # abgefragte Allianz/Rang fuer Namen, die nur SIE selbst kennt,
+            # weil buildResults() in background.js ausschliesslich die
+            # Top-Level tracked_users.json liest, nie data/users/*.
+            entry = {"name": name}
+            entry.update(result)
+            entry["lastChecked"] = now_iso
+            tracked.append(entry)
             time.sleep(REQUEST_DELAY_SECONDS)
 
-    # tracked_users.json: unverändert exklusiv fürs Go-Core, normaler
-    # lokaler Schreibvorgang + Git-Commit im Workflow.
+    # tracked_users.json: normaler lokaler Schreibvorgang + Git-Commit im
+    # Workflow. Enthaelt jetzt auch die oben ergaenzten Extension-only-Namen.
     with open(TRACKED_FILE, "w", encoding="utf-8") as f:
         json.dump(tracked, f, indent=2, ensure_ascii=False)
 
