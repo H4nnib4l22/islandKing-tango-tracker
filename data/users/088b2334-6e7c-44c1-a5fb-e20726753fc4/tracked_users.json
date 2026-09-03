@@ -2,33 +2,26 @@
   {
     "name": "Bangee",
     "found": true,
-    "alliance": null,
     "score": 1447,
-    "rank": 15,
-    "online": false
+    "rank": 15
   },
   {
     "name": "w0lfzk1nd",
     "found": true,
     "alliance": "OKA",
     "score": 5631,
-    "rank": 3,
-    "online": true
+    "rank": 3
   },
   {
     "name": "Peter",
     "found": true,
-    "alliance": "OKA",
     "score": 347,
-    "rank": 90,
     "online": true
   },
   {
     "name": "Pitbullbeisser",
     "found": true,
-    "alliance": "SKU",
     "score": 646,
-    "rank": 38,
     "online": false
   }
 ]
