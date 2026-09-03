@@ -310,9 +310,14 @@ def run_tracker():
             # abgefragte Allianz/Rang fuer Namen, die nur SIE selbst kennt,
             # weil buildResults() in background.js ausschliesslich die
             # Top-Level tracked_users.json liest, nie data/users/*.
+            # origin="extension" markiert das als NICHT Teil der eigenen
+            # Go-Core-Watchlist - das GitHub-Dashboard (Flutter) filtert
+            # danach, sonst wuerde es die Extension-Watchlists ALLER
+            # Nutzer anzeigen, die dieses Repo teilen, nicht nur die eigene.
             entry = {"name": name}
             entry.update(result)
             entry["lastChecked"] = now_iso
+            entry["origin"] = "extension"
             tracked.append(entry)
             time.sleep(REQUEST_DELAY_SECONDS)
 
