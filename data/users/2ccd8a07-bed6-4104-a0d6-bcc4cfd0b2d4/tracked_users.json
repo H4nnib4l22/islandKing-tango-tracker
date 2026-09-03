@@ -19,15 +19,15 @@
     "name": "w0lfzk1nd",
     "found": true,
     "alliance": "OKA",
-    "score": 5641,
+    "score": 5648,
     "rank": 3,
-    "online": false
+    "online": true
   },
   {
     "name": "andi-a-aus-o",
     "found": true,
     "alliance": "OKA",
-    "score": 1185,
+    "score": 1187,
     "rank": 21,
     "online": false
   },
@@ -35,7 +35,7 @@
     "name": "Dlsamo",
     "found": true,
     "alliance": "OKA",
-    "score": 2027,
+    "score": 2029,
     "rank": 8,
     "online": false
   },
@@ -43,7 +43,7 @@
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
-    "score": 3213,
+    "score": 3215,
     "rank": 4,
     "online": false
   },
@@ -59,7 +59,7 @@
     "name": "SxnicAela",
     "found": true,
     "alliance": "SLG",
-    "score": 1938,
+    "score": 1940,
     "rank": 9,
     "online": false
   },
@@ -83,7 +83,7 @@
     "name": "grimaldo",
     "found": true,
     "alliance": "GTdW",
-    "score": 1259,
+    "score": 1263,
     "rank": 20,
     "online": false
   },
@@ -91,9 +91,9 @@
     "name": "Schelmi",
     "found": true,
     "alliance": ">> SF <<",
-    "score": 10355,
+    "score": 10393,
     "rank": 1,
-    "online": true
+    "online": false
   },
   {
     "name": "Hardscore",
@@ -101,13 +101,13 @@
     "alliance": ">> SF <<",
     "score": 860,
     "rank": 35,
-    "online": true
+    "online": false
   },
   {
     "name": "OscarZulu",
     "found": true,
     "alliance": ">> SF <<",
-    "score": 1335,
+    "score": 1338,
     "rank": 17,
     "online": true
   }
