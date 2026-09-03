@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "name": "DaneRedBeard",
+    "found": true,
+    "alliance": "OKA",
+    "score": 2802,
+    "rank": 5,
+    "online": false
+  },
+  {
+    "name": "wantedasa",
+    "found": true,
+    "alliance": "OKA",
+    "score": 3200,
+    "rank": 4,
+    "online": false
+  },
+  {
+    "name": "ShoneDwarf5358",
+    "found": true,
+    "alliance": "OKA",
+    "score": 2628,
+    "rank": 6,
+    "online": false
+  }
+]
