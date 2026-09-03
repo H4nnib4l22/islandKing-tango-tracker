@@ -44,5 +44,11 @@
     "score": 1927,
     "rank": 9,
     "online": false
+  },
+  {
+    "name": "Peter",
+    "found": true,
+    "score": 347,
+    "online": true
   }
 ]
