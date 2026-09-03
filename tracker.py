@@ -187,7 +187,16 @@ def fetch_remote_history():
         return {}, None
     res.raise_for_status()
     data = res.json()
-    content = base64.b64decode(data["content"]).decode("utf-8")
+    if data.get("encoding") == "none":
+        # Contents-API embedded ab ~1MB keinen Content mehr (siehe
+        # data["size"]) - dann stattdessen über die Blobs-API laden, die
+        # unabhängig von der Dateigroesse funktioniert.
+        blob_res = requests.get(data["git_url"], headers=github_api_headers())
+        blob_res.raise_for_status()
+        blob = blob_res.json()
+        content = base64.b64decode(blob["content"]).decode("utf-8")
+    else:
+        content = base64.b64decode(data["content"]).decode("utf-8")
     return json.loads(content), data["sha"]
 
 
