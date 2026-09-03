@@ -2,22 +2,26 @@
   {
     "name": "Bangee",
     "found": true,
+    "alliance": null,
     "score": 1447,
-    "rank": 15
+    "rank": 15,
+    "online": false
   },
   {
     "name": "DaneRedbeard",
     "found": true,
     "alliance": "OKA",
     "score": 2806,
-    "rank": 5
+    "rank": 5,
+    "online": false
   },
   {
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
     "score": 3213,
-    "rank": 4
+    "rank": 4,
+    "online": false
   },
   {
     "name": "w0lfzk1nd",
@@ -32,27 +36,31 @@
     "found": true,
     "alliance": "OKA",
     "score": 2628,
-    "rank": 7
+    "rank": 7,
+    "online": false
   },
   {
     "name": "meep.",
     "found": true,
     "alliance": "OKA",
     "score": 1929,
-    "rank": 10
+    "rank": 10,
+    "online": false
   },
   {
     "name": "Peter",
     "found": true,
     "alliance": "OKA",
     "score": 347,
-    "rank": 91
+    "rank": 91,
+    "online": false
   },
   {
     "name": "Pitbullbeisser",
     "found": true,
     "alliance": "SKU",
     "score": 650,
-    "rank": 39
+    "rank": 39,
+    "online": false
   }
 ]
