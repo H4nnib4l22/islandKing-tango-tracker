@@ -4,90 +4,63 @@
     "found": true,
     "alliance": "OKA",
     "score": 5631,
-    "rank": 3,
-    "id": 9,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 3
   },
   {
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
     "score": 3207,
-    "rank": 4,
-    "online": false,
-    "id": 12,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 4
   },
   {
     "name": "DaneRedbeard",
     "found": true,
     "alliance": "OKA",
     "score": 2802,
-    "rank": 5,
-    "id": 16,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 5
   },
   {
     "name": "ShoneDwarf5358",
     "found": true,
     "alliance": "OKA",
     "score": 2628,
-    "rank": 6,
-    "id": 10,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 6
   },
   {
     "name": "meep.",
     "found": true,
     "alliance": "OKA",
     "score": 1927,
-    "rank": 9,
-    "id": 31,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 9
   },
   {
     "name": "Dlsamo",
     "found": true,
     "alliance": "OKA",
     "score": 2027,
-    "rank": 8,
-    "id": 11,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 8
   },
   {
     "name": "andi-a-aus-o",
     "found": true,
     "alliance": "OKA",
     "score": 1185,
-    "rank": 21,
-    "id": 5,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 21
   },
   {
     "name": "8DX247",
     "found": true,
     "alliance": "SLG",
     "score": 1319,
-    "rank": 18,
-    "id": 75,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 18
   },
   {
     "name": "Rog",
     "found": true,
     "alliance": "FR",
     "score": 1291,
-    "rank": 19,
-    "id": 107,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 19
   },
   {
     "name": "SxnicAela",
@@ -95,28 +68,24 @@
     "alliance": "SLG",
     "score": 1887,
     "rank": 11,
-    "id": 54,
-    "online": true,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "online": true
   },
   {
     "name": "grimaldo",
     "found": true,
     "alliance": "GTdW",
     "score": 1259,
-    "rank": 20,
-    "id": 251,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "rank": 20
   },
   {
     "name": "Gugone",
     "found": true,
-    "id": 319,
-    "score": 278,
     "alliance": ">> SF <<",
-    "rank": 111,
-    "online": false,
-    "lastChecked": "2026-09-03T16:32:19Z"
+    "score": 278,
+    "rank": 111
+  },
+  {
+    "name": "Dentina",
+    "found": false
   }
 ]
