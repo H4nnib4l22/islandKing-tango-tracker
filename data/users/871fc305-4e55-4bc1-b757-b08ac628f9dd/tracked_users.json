@@ -2,7 +2,9 @@
   {
     "name": "Bangee",
     "found": true,
+    "alliance": null,
     "score": 1447,
+    "rank": 15,
     "online": false
   },
   {
@@ -48,13 +50,17 @@
   {
     "name": "Peter",
     "found": true,
+    "alliance": "OKA",
     "score": 347,
+    "rank": 90,
     "online": true
   },
   {
     "name": "Pitbullbeisser",
     "found": true,
+    "alliance": "SKU",
     "score": 646,
+    "rank": 38,
     "online": false
   }
 ]
