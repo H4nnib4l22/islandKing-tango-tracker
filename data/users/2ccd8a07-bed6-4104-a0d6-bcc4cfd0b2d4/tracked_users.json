@@ -3,23 +3,23 @@
     "name": "DaneRedbeard",
     "found": true,
     "alliance": "OKA",
-    "score": 2792,
+    "score": 2806,
     "rank": 5,
-    "online": false
+    "online": true
   },
   {
     "name": "ShoneDwarf5358",
     "found": true,
     "alliance": "OKA",
     "score": 2628,
-    "rank": 6,
+    "rank": 7,
     "online": false
   },
   {
     "name": "w0lfzk1nd",
     "found": true,
     "alliance": "OKA",
-    "score": 5543,
+    "score": 5641,
     "rank": 3,
     "online": false
   },
@@ -27,7 +27,7 @@
     "name": "andi-a-aus-o",
     "found": true,
     "alliance": "OKA",
-    "score": 1172,
+    "score": 1185,
     "rank": 21,
     "online": false
   },
@@ -35,32 +35,32 @@
     "name": "Dlsamo",
     "found": true,
     "alliance": "OKA",
-    "score": 1888,
-    "rank": 9,
+    "score": 2027,
+    "rank": 8,
     "online": false
   },
   {
     "name": "wantedasa",
     "found": true,
     "alliance": "OKA",
-    "score": 3195,
+    "score": 3213,
     "rank": 4,
-    "online": false
+    "online": true
   },
   {
     "name": "meep.",
     "found": true,
     "alliance": "OKA",
-    "score": 1927,
-    "rank": 8,
+    "score": 1929,
+    "rank": 10,
     "online": false
   },
   {
     "name": "SxnicAela",
     "found": true,
     "alliance": "SLG",
-    "score": 1850,
-    "rank": 10,
+    "score": 1938,
+    "rank": 9,
     "online": false
   },
   {
@@ -68,41 +68,47 @@
     "found": true,
     "alliance": "SLG",
     "score": 1319,
-    "rank": 17,
+    "rank": 18,
     "online": false
   },
   {
     "name": "Rog",
     "found": true,
     "alliance": "FR",
-    "score": 1281,
-    "rank": 18,
+    "score": 1292,
+    "rank": 19,
     "online": false
   },
   {
     "name": "grimaldo",
     "found": true,
     "alliance": "GTdW",
-    "score": 1254,
-    "rank": 19,
+    "score": 1259,
+    "rank": 20,
     "online": false
   },
   {
     "name": "Schelmi",
     "found": true,
-    "score": 9835,
-    "online": false
+    "alliance": ">> SF <<",
+    "score": 10355,
+    "rank": 1,
+    "online": true
   },
   {
     "name": "Hardscore",
     "found": true,
-    "score": 843,
+    "alliance": ">> SF <<",
+    "score": 860,
+    "rank": 35,
     "online": true
   },
   {
     "name": "OscarZulu",
     "found": true,
-    "score": 1209,
+    "alliance": ">> SF <<",
+    "score": 1335,
+    "rank": 17,
     "online": true
   }
 ]
