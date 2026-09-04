@@ -9241,9 +9241,9 @@
       "ts": 1788538358883
     },
     {
-      "ts": 1788538478611,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538478611
     }
   ],
   "DaneRedbeard": [
@@ -18563,9 +18563,9 @@
       "ts": 1788538346829
     },
     {
-      "ts": 1788538466562,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538466562
     }
   ],
   "Dlsamo": [
@@ -27810,9 +27810,9 @@
       "ts": 1788538350433
     },
     {
-      "ts": 1788538470183,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538470183
     }
   ],
   "Rog": [
@@ -37067,9 +37067,9 @@
       "ts": 1788538364967
     },
     {
-      "ts": 1788538484637,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538484637
     }
   ],
   "ShoneDwarf5358": [
@@ -46399,9 +46399,9 @@
       "ts": 1788538348029
     },
     {
-      "ts": 1788538467761,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538467761
     }
   ],
   "SxnicAela": [
@@ -55641,9 +55641,9 @@
       "ts": 1788538362532
     },
     {
-      "ts": 1788538482231,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538482231
     }
   ],
   "andi-a-aus-o": [
@@ -64908,9 +64908,9 @@
       "ts": 1788538351638
     },
     {
-      "ts": 1788538471392,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538471392
     }
   ],
   "grimaldo": [
@@ -74150,9 +74150,9 @@
       "ts": 1788538363742
     },
     {
-      "ts": 1788538483430,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538483430
     }
   ],
   "meep.": [
@@ -83402,9 +83402,9 @@
       "ts": 1788538349232
     },
     {
-      "ts": 1788538468982,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538468982
     }
   ],
   "w0lfzk1nd": [
@@ -92704,9 +92704,9 @@
       "ts": 1788538344416
     },
     {
-      "ts": 1788538464149,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538464149
     }
   ],
   "wantedasa": [
@@ -101961,9 +101961,9 @@
       "ts": 1788538345615
     },
     {
-      "ts": 1788538465357,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538465357
     }
   ],
   "Schelmi": [
@@ -110903,9 +110903,9 @@
       "ts": 1788538357664
     },
     {
-      "ts": 1788538477401,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538477401
     }
   ],
   "Hardscore": [
@@ -119845,9 +119845,9 @@
       "ts": 1788538356456
     },
     {
-      "ts": 1788538476188,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788538476188
     }
   ],
   "OscarZulu": [
@@ -128747,9 +128747,9 @@
       "ts": 1788538366165
     },
     {
-      "ts": 1788538485840,
+      "online": true,
       "score": null,
-      "online": true
+      "ts": 1788538485840
     }
   ],
   "Bangee": [
@@ -136014,9 +136014,9 @@
       "ts": 1788538355253
     },
     {
-      "ts": 1788538474979,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538474979
     }
   ],
   "Gugone": [
@@ -142431,9 +142431,9 @@
       "ts": 1788538352851
     },
     {
-      "ts": 1788538472586,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538472586
     }
   ],
   "Dentina": [
@@ -148803,9 +148803,9 @@
       "ts": 1788538354052
     },
     {
-      "ts": 1788538473781,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538473781
     }
   ],
   "Peter": [
@@ -155110,9 +155110,9 @@
       "ts": 1788538360093
     },
     {
-      "ts": 1788538479817,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538479817
     }
   ],
   "Pitbullbeisser": [
@@ -161317,9 +161317,9 @@
       "ts": 1788538361324
     },
     {
-      "ts": 1788538481020,
+      "online": false,
       "score": null,
-      "online": false
+      "ts": 1788538481020
     }
   ]
 }
