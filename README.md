@@ -7,7 +7,7 @@ und liefert damit die Datenbasis für Heatmap, Punkte-Graph und
 
 ## Wie es funktioniert (kurz)
 
-1. `tracker.py` loggt sich mit einem eigenen Islandking-Account ein
+1. `tracker.py` fürt die Abfrage aus
 2. Für jeden Namen in `data/tracked_users.json` wird `GET /api/rankings?q=<name>`
    abgefragt (exakter Namenstreffer, sonst `found: false`)
 3. Der aktuelle Stand landet in `data/tracked_users.json`, ein neuer
@@ -76,7 +76,7 @@ nächste Lauf automatisch aus.
 
 ## Datenaufbewahrung
 
-`data/history.json` behält nur die letzten **90 Tage** pro Name (älteres
+`data/history.json` behält nur die letzten **30 Tage** pro Name (älteres
 wird beim nächsten Eintrag für diesen Namen automatisch rausgefiltert, kein
 separater Aufräum-Job nötig). Wird ein Name aus `tracked_users.json`
 entfernt, bleibt seine bisherige Historie unverändert stehen – die
