@@ -7,7 +7,7 @@ und liefert damit die Datenbasis für Heatmap, Punkte-Graph und
 
 ## Wie es funktioniert (kurz)
 
-1. `tracker.py` fürt die Abfrage aus
+1. `tracker.py` führt die Abfrage aus
 2. Für jeden Namen in `data/tracked_users.json` wird `GET /api/rankings?q=<name>`
    abgefragt (exakter Namenstreffer, sonst `found: false`)
 3. Der aktuelle Stand landet in `data/tracked_users.json`, ein neuer
