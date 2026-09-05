@@ -12,8 +12,12 @@ import requests
 # Actions automatisch bereitgestellt)
 USERNAME = os.getenv("IK_USER")
 PASSWORD = os.getenv("IK_PASS")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # automatisch von Actions, muss im Workflow durchgereicht werden
-GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # "owner/repo", von Actions automatisch gesetzt
+# data/ liegt seit der Trennung public/private in einem eigenen Repo (Actions
+# laufen weiterhin im oeffentlichen Code-Repo, kosten dort keine Minuten).
+# Braucht einen eigenen Token, da der automatische GITHUB_TOKEN nur Zugriff
+# auf das Repo hat, in dem der Workflow laeuft.
+DATA_REPOSITORY = os.getenv("DATA_REPOSITORY", "H4nnib4l22/islandKing-tango-tracker-data")
+DATA_GITHUB_TOKEN = os.getenv("DATA_REPO_TOKEN")
 
 BASE_URL = "https://islandking.ch"
 TRACKED_FILE = "data/tracked_users.json"  # exklusiv fürs Go-Core, normaler Git-Commit
@@ -31,8 +35,8 @@ if not USERNAME or not PASSWORD:
     print("Fehler: Zugangsdaten (IK_USER / IK_PASS) sind nicht gesetzt.")
     sys.exit(1)
 
-if not GITHUB_TOKEN or not GITHUB_REPOSITORY:
-    print("Fehler: GITHUB_TOKEN / GITHUB_REPOSITORY sind nicht gesetzt (werden für den history.json-Merge über die API gebraucht).")
+if not DATA_GITHUB_TOKEN:
+    print("Fehler: DATA_REPO_TOKEN ist nicht gesetzt (wird für den history.json-Merge über die API im privaten Daten-Repo gebraucht).")
     sys.exit(1)
 
 
@@ -171,7 +175,7 @@ def record_result(name, result, initial_history, pending_entries):
 
 def github_api_headers():
     return {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {DATA_GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
@@ -181,7 +185,7 @@ def fetch_remote_history():
     """Holt die aktuelle history.json direkt über die GitHub-Contents-API.
     Gibt (history_dict, sha) zurück. sha ist None, falls die Datei noch
     nicht existiert (dann wird beim ersten PUT keins mitgeschickt)."""
-    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/contents/{HISTORY_PATH}"
+    url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{HISTORY_PATH}"
     res = requests.get(url, headers=github_api_headers())
     if res.status_code == 404:
         return {}, None
@@ -231,7 +235,7 @@ def merge_and_trim(remote_history, pending_entries):
 
 
 def push_history(merged_history, sha):
-    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/contents/{HISTORY_PATH}"
+    url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{HISTORY_PATH}"
     content_str = json.dumps(merged_history, ensure_ascii=False)
     payload = {
         "message": "Merge history.json (tracker.py)",

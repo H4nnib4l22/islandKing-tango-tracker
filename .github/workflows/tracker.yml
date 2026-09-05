@@ -25,6 +25,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout data repository (privat)
+        uses: actions/checkout@v4
+        with:
+          repository: H4nnib4l22/islandKing-tango-tracker-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+        # Privates Repo, daher eigener Token (der automatische GITHUB_TOKEN
+        # hat nur Zugriff auf das Repo, in dem der Workflow laeuft). Landet
+        # exakt im "data/"-Pfad, den tracker.py schon immer erwartet hat -
+        # dort aendert sich dadurch nichts.
+
       - name: Python einrichten
         uses: actions/setup-python@v5
         with:
@@ -40,18 +51,17 @@ jobs:
         env:
           IK_USER: ${{ secrets.IK_USER }}
           IK_PASS: ${{ secrets.IK_PASS }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
           # Wird fuer den history.json-Merge ueber die GitHub-Contents-API
-          # gebraucht (sync_history in tracker.py) - anders als
-          # GITHUB_REPOSITORY nicht automatisch an Steps durchgereicht,
-          # muss hier explizit gesetzt werden.
+          # im privaten Daten-Repo gebraucht (sync_history in tracker.py).
         run: python tracker.py
 
-      - name: Commit and push changes
+      - name: Commit and push changes (data repo)
+        working-directory: data
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add data/tracked_users.json
+          git add tracked_users.json
           if git diff --cached --quiet; then
             echo "Keine Aenderungen an tracked_users.json."
             exit 0
@@ -75,3 +85,5 @@ jobs:
         # history.json wird nicht mehr hier committet - das laeuft
         # inzwischen komplett ueber die GitHub-API in tracker.py
         # (sync_history), lokal wird die Datei gar nicht mehr angefasst.
+        # working-directory: data -> operiert auf dem Checkout des privaten
+        # Daten-Repos, nicht auf dem oeffentlichen Code-Repo.
