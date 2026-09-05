@@ -20,7 +20,11 @@ DATA_REPOSITORY = os.getenv("DATA_REPOSITORY", "H4nnib4l22/islandKing-tango-trac
 DATA_GITHUB_TOKEN = os.getenv("DATA_REPO_TOKEN")
 
 BASE_URL = "https://islandking.ch"
-TRACKED_FILE = "data/tracked_users.json"  # exklusiv fürs Go-Core, normaler Git-Commit
+# Lokaler Dateisystempfad - abhaengig davon, wohin der Workflow das private
+# Daten-Repo checkt (aktuell "data-repo/", das Repo hat intern selbst schon
+# einen "data/"-Ordner). HISTORY_PATH dagegen ist ein API-Pfad *innerhalb*
+# von DATA_REPOSITORY und von der lokalen Checkout-Struktur unabhaengig.
+TRACKED_FILE = "data-repo/data/tracked_users.json"  # exklusiv fürs Go-Core, normaler Git-Commit
 HISTORY_PATH = "data/history.json"  # GETEILT mit den Browser-Extensions, läuft über die GitHub-API
 REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Islandking-Abfragen
 
@@ -122,7 +126,7 @@ def collect_extra_names(tracked):
     Funktion liest nur mit."""
     known = {e.get("name", "").lower() for e in tracked if e.get("name")}
     extra = set()
-    users_dir = "data/users"
+    users_dir = "data-repo/data/users"
     if not os.path.isdir(users_dir):
         return []
     for uid in os.listdir(users_dir):

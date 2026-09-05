@@ -30,11 +30,13 @@ jobs:
         with:
           repository: H4nnib4l22/islandKing-tango-tracker-data
           token: ${{ secrets.DATA_REPO_TOKEN }}
-          path: data
+          path: data-repo
         # Privates Repo, daher eigener Token (der automatische GITHUB_TOKEN
-        # hat nur Zugriff auf das Repo, in dem der Workflow laeuft). Landet
-        # exakt im "data/"-Pfad, den tracker.py schon immer erwartet hat -
-        # dort aendert sich dadurch nichts.
+        # hat nur Zugriff auf das Repo, in dem der Workflow laeuft). Das
+        # Daten-Repo selbst hat intern schon einen "data/"-Ordner (das
+        # erwarten Extension und tracker.py's HISTORY_PATH fest so) - bei
+        # path: data wuerde das doppelt verschachtelt zu data/data/... fuehren,
+        # daher path: data-repo statt data.
 
       - name: Python einrichten
         uses: actions/setup-python@v5
@@ -57,11 +59,11 @@ jobs:
         run: python tracker.py
 
       - name: Commit and push changes (data repo)
-        working-directory: data
+        working-directory: data-repo
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add tracked_users.json
+          git add data/tracked_users.json
           if git diff --cached --quiet; then
             echo "Keine Aenderungen an tracked_users.json."
             exit 0
