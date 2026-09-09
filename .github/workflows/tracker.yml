@@ -49,6 +49,18 @@ jobs:
         # nutzen einen Browser, nur reine HTTP-Requests (requests-Bibliothek).
         # Spart deutlich Zeit und GitHub-Actions-Minuten pro Lauf.
 
+      - name: WireGuard-VPN verbinden (Windscribe)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y wireguard-tools
+          umask 077
+          echo "${{ secrets.WG_CONFIG }}" > /tmp/wg0.conf
+          sudo mv /tmp/wg0.conf /etc/wireguard/wg0.conf
+          sudo wg-quick up wg0
+        # Feste Windscribe-Exit-IP statt der bei jedem Actions-Run neuen
+        # Azure-Runner-IP, damit Islandking den haeufigen Login-Takt (alle
+        # 2 Min. per cron-job.org) nicht als 600+ verschiedene IPs sieht.
+
       - name: Tracker mit Login ausführen
         env:
           IK_USER: ${{ secrets.IK_USER }}
@@ -57,6 +69,12 @@ jobs:
           # Wird fuer den history.json-Merge ueber die GitHub-Contents-API
           # im privaten Daten-Repo gebraucht (sync_history in tracker.py).
         run: python tracker.py
+
+      - name: WireGuard-VPN trennen
+        if: always()
+        run: sudo wg-quick down wg0 || true
+        # Sauber trennen, bevor der Push-Schritt laeuft - unabhaengig davon,
+        # ob tracker.py erfolgreich war.
 
       - name: Commit and push changes (data repo)
         working-directory: data-repo
