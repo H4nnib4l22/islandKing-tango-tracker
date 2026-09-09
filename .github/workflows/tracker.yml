@@ -51,8 +51,7 @@ jobs:
 
       - name: WireGuard-VPN verbinden (Windscribe)
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y wireguard-tools
+          sudo apt-get install -y wireguard-tools || (sudo apt-get update -qq && sudo apt-get install -y wireguard-tools)
           umask 077
           echo "${{ secrets.WG_CONFIG }}" > /tmp/wg0.conf
           sudo mv /tmp/wg0.conf /etc/wireguard/wg0.conf
@@ -60,6 +59,9 @@ jobs:
         # Feste Windscribe-Exit-IP statt der bei jedem Actions-Run neuen
         # Azure-Runner-IP, damit Islandking den haeufigen Login-Takt (alle
         # 2 Min. per cron-job.org) nicht als 600+ verschiedene IPs sieht.
+        # apt-get update nur im Fallback (Paket-Cache des Runner-Images
+        # reicht normalerweise), spart ein paar Sekunden pro Lauf - die
+        # 2-Minuten-Taktung des Cron-Triggers lässt kaum Marge.
 
       - name: Tracker mit Login ausführen
         env:
