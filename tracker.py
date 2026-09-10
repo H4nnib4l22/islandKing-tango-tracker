@@ -26,7 +26,7 @@ BASE_URL = "https://islandking.ch"
 # von DATA_REPOSITORY und von der lokalen Checkout-Struktur unabhaengig.
 TRACKED_FILE = "data-repo/data/tracked_users.json"  # exklusiv fürs Go-Core, normaler Git-Commit
 HISTORY_PATH = "data/history.json"  # GETEILT mit den Browser-Extensions, läuft über die GitHub-API
-REQUEST_DELAY_SECONDS = 1  # kleine, höfliche Pause zwischen den Islandking-Abfragen
+REQUEST_DELAY_SECONDS = 0.3  # kleine, höfliche Pause zwischen den Islandking-Abfragen (Nutzerwunsch 2026-09-10: von 1s gesenkt, um den ~86s-Lauf unter die 90s-Taktung zu druecken - betrifft nur die Pause zwischen Requests INNERHALB eines Laufs, nicht die Login-Haeufigkeit selbst, die zum Azure-IP-Vorfall fuehrte, s. [[project_tango_tracker_vpn_fix]])
 
 # Müssen mit dem übereinstimmen, was die Browser-Extension für denselben,
 # jetzt gemeinsam genutzten Ort verwendet (Absprache siehe Chat).
