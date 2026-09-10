@@ -1,42 +1,25 @@
 name: Islandking Login & Tracker
 on:
-  schedule:
-    - cron: '0 */6 * * *' # Bleibt für den automatischen GitHub-Intervall erhalten (z.B. alle 6 Stunden)
-  workflow_dispatch: # Ermöglicht den manuellen Start im GitHub-Web
-  repository_dispatch:
-    types: [run-tracker] # Das ist das Signal, auf das cron-job.org hören wird
-
-concurrency:
-  group: tracker-run
-  cancel-in-progress: false
-  # Verhindert, dass sich zwei Laeufe ueberlappen (cron-job.org triggert alle
-  # 2 Min. per repository_dispatch) - ohne das koennten zwei parallele Runs
-  # sich beim Schreiben von tracked_users.json gegenseitig ueberschreiben.
-  # history.json ist seit dem API-basierten Merge (sync_history in
-  # tracker.py) davon nicht mehr betroffen, tracked_users.json laeuft aber
-  # weiterhin ueber lokalen Git-Commit.
+  workflow_dispatch: # Manueller Fallback-Start im GitHub-Web
+  # Seit 2026-09-10 laeuft der Dauerbetrieb auf einer eigenen
+  # bot-hosting.net-Instanz (s. tracker.py: run_forever()) - schedule/
+  # repository_dispatch (cron-job.org) entfernt, sonst wuerde parallel zum
+  # Dauerlauf zusaetzlich hier ausgeloest und doppelt geschrieben/eingeloggt.
+  # Bei Bedarf (Instanz down) einfach ueber "Run workflow" manuell starten.
 
 jobs:
   track:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    # Kein "permissions: contents: write" mehr noetig - nichts schreibt
+    # mehr ueber den automatischen GITHUB_TOKEN, tracker.py schreibt
+    # ausschliesslich per DATA_REPO_TOKEN ueber die Contents-API.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Checkout data repository (privat)
-        uses: actions/checkout@v4
-        with:
-          repository: H4nnib4l22/islandKing-tango-tracker-data
-          token: ${{ secrets.DATA_REPO_TOKEN }}
-          path: data-repo
-        # Privates Repo, daher eigener Token (der automatische GITHUB_TOKEN
-        # hat nur Zugriff auf das Repo, in dem der Workflow laeuft). Das
-        # Daten-Repo selbst hat intern schon einen "data/"-Ordner (das
-        # erwarten Extension und tracker.py's HISTORY_PATH fest so) - bei
-        # path: data wuerde das doppelt verschachtelt zu data/data/... fuehren,
-        # daher path: data-repo statt data.
+        # Kein zweiter Checkout des privaten Daten-Repos mehr noetig -
+        # tracked_users.json laeuft seit 2026-09-10 wie history.json
+        # komplett ueber die GitHub-Contents-API (s. tracker.py), kein
+        # lokaler Checkout/Commit/Push dafuer mehr.
 
       - name: Python einrichten
         uses: actions/setup-python@v5
@@ -68,44 +51,20 @@ jobs:
           IK_USER: ${{ secrets.IK_USER }}
           IK_PASS: ${{ secrets.IK_PASS }}
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
-          # Wird fuer den history.json-Merge ueber die GitHub-Contents-API
-          # im privaten Daten-Repo gebraucht (sync_history in tracker.py).
+          # Wird fuer den tracked_users.json/history.json-Zugriff ueber die
+          # GitHub-Contents-API im privaten Daten-Repo gebraucht.
+          RUN_ONCE: "1"
+          # Seit 2026-09-10 laeuft der Dauerbetrieb auf einer eigenen
+          # bot-hosting.net-Instanz (tracker.py laeuft dort per Default als
+          # Endlos-Loop, s. run_forever()) - dieser Workflow ist nur noch
+          # manueller Fallback. Ohne RUN_ONCE=1 wuerde tracker.py hier NIE
+          # beenden und den Runner bis zum 6h-Timeout blockieren.
         run: python tracker.py
 
       - name: WireGuard-VPN trennen
         if: always()
         run: sudo wg-quick down wg0 || true
-        # Sauber trennen, bevor der Push-Schritt laeuft - unabhaengig davon,
-        # ob tracker.py erfolgreich war.
-
-      - name: Commit and push changes (data repo)
-        working-directory: data-repo
-        run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "actions@github.com"
-          git add data/tracked_users.json
-          if git diff --cached --quiet; then
-            echo "Keine Aenderungen an tracked_users.json."
-            exit 0
-          fi
-          git commit -m "Update tracked_users.json"
-
-          # Zwischen Checkout und Push kann der Remote-Branch weitergelaufen
-          # sein (anderer Run, oder ein manueller/API-Commit anderswo im
-          # Repo) - "fetch first" ohne Retry wuerde den ganzen Job scheitern
-          # lassen. Rebase + kurzer Retry, da nur diese Datei hier bewegt
-          # wird und Konflikte damit unwahrscheinlich sind.
-          for attempt in 1 2 3; do
-            if git push; then
-              exit 0
-            fi
-            echo "Push fehlgeschlagen (Versuch $attempt/3), rebase gegen origin/main und erneut versuchen..."
-            git pull --rebase origin main
-          done
-          echo "Push nach 3 Versuchen weiterhin fehlgeschlagen."
-          exit 1
-        # history.json wird nicht mehr hier committet - das laeuft
-        # inzwischen komplett ueber die GitHub-API in tracker.py
-        # (sync_history), lokal wird die Datei gar nicht mehr angefasst.
-        # working-directory: data -> operiert auf dem Checkout des privaten
-        # Daten-Repos, nicht auf dem oeffentlichen Code-Repo.
+        # Sauber trennen, unabhaengig davon, ob tracker.py erfolgreich war.
+        # Kein Commit/Push-Schritt mehr danach - tracker.py schreibt
+        # tracked_users.json UND history.json seit 2026-09-10 direkt selbst
+        # ueber die GitHub-Contents-API (push_tracked()/sync_history()).

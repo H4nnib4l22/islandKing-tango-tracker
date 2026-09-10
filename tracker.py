@@ -8,25 +8,27 @@ from datetime import datetime, timezone
 
 import requests
 
-# Konfiguration über Umgebungsvariablen (GitHub Secrets bzw. von GitHub
-# Actions automatisch bereitgestellt)
+# Konfiguration über Umgebungsvariablen (bisher GitHub Actions Secrets,
+# jetzt identisch als Env-Vars im bot-hosting.net-Panel gesetzt - s.
+# [[project_tango_tracker_vpn_fix]])
 USERNAME = os.getenv("IK_USER")
 PASSWORD = os.getenv("IK_PASS")
-# data/ liegt seit der Trennung public/private in einem eigenen Repo (Actions
-# laufen weiterhin im oeffentlichen Code-Repo, kosten dort keine Minuten).
-# Braucht einen eigenen Token, da der automatische GITHUB_TOKEN nur Zugriff
-# auf das Repo hat, in dem der Workflow laeuft.
+# data/ liegt seit der Trennung public/private in einem eigenen Repo.
+# Braucht einen eigenen Token, da ein automatischer GITHUB_TOKEN (GitHub
+# Actions) nur Zugriff auf das Repo haette, in dem der Workflow laeuft -
+# hier ausserhalb von Actions ohnehin nur ein normaler PAT.
 DATA_REPOSITORY = os.getenv("DATA_REPOSITORY", "H4nnib4l22/islandKing-tango-tracker-data")
 DATA_GITHUB_TOKEN = os.getenv("DATA_REPO_TOKEN")
 
 BASE_URL = "https://islandking.ch"
-# Lokaler Dateisystempfad - abhaengig davon, wohin der Workflow das private
-# Daten-Repo checkt (aktuell "data-repo/", das Repo hat intern selbst schon
-# einen "data/"-Ordner). HISTORY_PATH dagegen ist ein API-Pfad *innerhalb*
-# von DATA_REPOSITORY und von der lokalen Checkout-Struktur unabhaengig.
-TRACKED_FILE = "data-repo/data/tracked_users.json"  # exklusiv fürs Go-Core, normaler Git-Commit
-HISTORY_PATH = "data/history.json"  # GETEILT mit den Browser-Extensions, läuft über die GitHub-API
-REQUEST_DELAY_SECONDS = 0.3  # kleine, höfliche Pause zwischen den Islandking-Abfragen (Nutzerwunsch 2026-09-10: von 1s gesenkt, um den ~86s-Lauf unter die 90s-Taktung zu druecken - betrifft nur die Pause zwischen Requests INNERHALB eines Laufs, nicht die Login-Haeufigkeit selbst, die zum Azure-IP-Vorfall fuehrte, s. [[project_tango_tracker_vpn_fix]])
+# Beide Pfade sind API-Pfade *innerhalb* von DATA_REPOSITORY - kein lokaler
+# Checkout mehr noetig (Umstellung 2026-09-10: lief vorher als GitHub Action
+# mit lokalem Checkout+git-commit fuer tracked_users.json; jetzt Dauerlauf
+# auf bot-hosting.net ohne Checkout, daher beide Dateien konsequent ueber
+# die Contents-API wie history.json es schon vorher tat).
+TRACKED_PATH = "data/tracked_users.json"
+HISTORY_PATH = "data/history.json"  # GETEILT mit den Browser-Extensions
+REQUEST_DELAY_SECONDS = 0.3  # kleine, höfliche Pause zwischen Rangliste-Seiten innerhalb eines Zyklus
 
 # Müssen mit dem übereinstimmen, was die Browser-Extension für denselben,
 # jetzt gemeinsam genutzten Ort verwendet (Absprache siehe Chat).
@@ -35,12 +37,20 @@ HISTORY_MAX_PER_NAME = 5000
 SCORE_CHECKPOINT_INTERVAL_MS = 20 * 60 * 1000  # Punkte nur alle ~20 Min. neu festhalten
 MAX_MERGE_RETRIES = 3
 
+# Dauerlauf statt Einmal-Ausführung (Nutzerwunsch 2026-09-10: Umzug von
+# GitHub Actions/cron-job.org auf eine dauerhaft laufende Instanz auf
+# bot-hosting.net - macht beides obsolet, kein Runner-Spin-up/Warteschlangen-
+# Varianz mehr, Login nur noch einmal statt pro Zyklus). RUN_ONCE=1 behält
+# das alte Einmal-Verhalten für manuelles Testen/GitHub-Actions-Fallback.
+POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "60"))
+RUN_ONCE = os.getenv("RUN_ONCE", "").lower() in ("1", "true", "yes")
+
 if not USERNAME or not PASSWORD:
     print("Fehler: Zugangsdaten (IK_USER / IK_PASS) sind nicht gesetzt.")
     sys.exit(1)
 
 if not DATA_GITHUB_TOKEN:
-    print("Fehler: DATA_REPO_TOKEN ist nicht gesetzt (wird für den history.json-Merge über die API im privaten Daten-Repo gebraucht).")
+    print("Fehler: DATA_REPO_TOKEN ist nicht gesetzt (wird für die tracked_users.json/history.json-API im privaten Daten-Repo gebraucht).")
     sys.exit(1)
 
 
@@ -65,25 +75,50 @@ def login(session):
     return token
 
 
-def fetch_all_players(session, headers):
+class IslandkingClient:
+    """Haelt Session+Token ueber mehrere Zyklen des Dauerlaufs hinweg (statt
+    wie bisher pro GitHub-Actions-Run neu einzuloggen). Loggt sich bei einer
+    abgelaufenen Session (401) automatisch einmal neu ein und wiederholt den
+    Request - identisch zum apiFetch()-Muster der Browser-Extensions."""
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.headers = {"Accept": "application/json"}
+        self._login()
+
+    def _login(self):
+        token = login(self.session)
+        self.headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+
+    def get(self, path, params=None):
+        res = self.session.get(f"{BASE_URL}{path}", params=params, headers=self.headers)
+        if res.status_code == 401:
+            print("Islandking-Session abgelaufen (401) - logge erneut ein.")
+            self._login()
+            res = self.session.get(f"{BASE_URL}{path}", params=params, headers=self.headers)
+        return res
+
+
+def fetch_all_players(client):
     """Läd die komplette Rangliste über GET /api/rankings?page=N (ohne q)
     und baut ein {name.lower(): player}-Mapping.
 
     Nutzerwunsch (2026-09-10): ersetzt die bisherige Einzel-Suche pro
-    Spieler (1 Request + 1s Sleep PRO getracktem Namen). Aus
+    Spieler (1 Request + Sleep PRO getracktem Namen). Aus
     RankingsView-DnNik556.js verifiziert: derselbe Endpoint, ohne q wird
     paginiert ({page:i} statt {q:r}), Antwort enthält players/page/
     pageSize/playersTotal. Skaliert mit der Gesamtspielerzahl der
     Rangliste, nicht mit der Watchlist-Größe - bei wachsender Watchlist
-    bleibt die Kostenzahl gleich, statt linear mitzuwachsen.
+    bleibt die Kostenzahl gleich, statt linear mitzuwachsen. Seitenzahl wird
+    JEDEN Zyklus frisch aus der Antwort berechnet, nicht hartcodiert -
+    wächst die Rangliste über die aktuellen 320 Spieler (16 Seiten à 20)
+    hinaus, kommen automatisch weitere Seiten dazu.
     """
     by_name = {}
     page = 1
     total_pages = 1
     while page <= total_pages:
-        res = session.get(
-            f"{BASE_URL}/api/rankings", params={"page": page}, headers=headers
-        )
+        res = client.get("/api/rankings", params={"page": page})
         if res.status_code != 200:
             print(f"  Warnung: HTTP {res.status_code} bei Rangliste Seite {page}")
             break
@@ -128,37 +163,6 @@ def last_score_ts(history, name):
     return None
 
 
-def collect_extra_names(tracked):
-    """Namen aus allen data/users/<uuid>/tracked_users.json (Watchlists der
-    Browser-Extensions), die noch nicht in der globalen tracked_users.json
-    stehen. Diese Action laeuft alle ~2 Min. unabhaengig davon, ob irgendwo
-    ein islandking.ch-Tab offen ist - ohne diese Ergaenzung wuerden Namen,
-    die nur eine Extension beobachtet, nie ein 24/7-Hintergrund-Tracking
-    bekommen. Liefert nur die Namen zurueck, NICHT die Dateien selbst -
-    data/users/ bleibt exklusiv von den Extensions beschrieben, diese
-    Funktion liest nur mit."""
-    known = {e.get("name", "").lower() for e in tracked if e.get("name")}
-    extra = set()
-    users_dir = "data-repo/data/users"
-    if not os.path.isdir(users_dir):
-        return []
-    for uid in os.listdir(users_dir):
-        path = os.path.join(users_dir, uid, "tracked_users.json")
-        if not os.path.isfile(path):
-            continue
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                entries = json.load(f)
-        except (json.JSONDecodeError, OSError) as err:
-            print(f"  Warnung: {path} konnte nicht gelesen werden: {err}")
-            continue
-        for e in entries:
-            name = e.get("name")
-            if name and name.lower() not in known:
-                extra.add(name)
-    return sorted(extra)
-
-
 def record_result(name, result, initial_history, pending_entries):
     """Verlaufs-Eintrag nur bei tatsaechlichem Treffer - ohne Treffer gibt
     es weder Score noch Online-Status zum Aufzeichnen. Score-Checkpoint:
@@ -175,18 +179,13 @@ def record_result(name, result, initial_history, pending_entries):
 
 
 # ---------------------------------------------------------------------
-# history.json über die GitHub-Contents-API - GETEILT mit den
-# Browser-Extensions (mehrere unabhängige Schreiber gleichzeitig möglich).
-#
-# Anders als tracked_users.json NICHT mehr über das lokale, ausgecheckte
-# Dateisystem + git commit lesen/schreiben: history.json wurde bisher als
-# eine einzige JSON-Zeile ohne Einrückung geschrieben, dadurch hätte selbst
-# ein reiner Git-Rebase bei zwei gleichzeitigen Änderungen an dieser Datei
-# praktisch immer einen Konflikt gemeldet, egal wie inhaltlich sinnvoll die
-# Änderungen eigentlich gewesen wären (git-Merges sind zeilenbasiert). Statt
-# dessen: GET mit sha -> inhaltlich mergen -> PUT mit sha, bei 409 (Konflikt,
-# jemand war schneller) neu GET+merge+PUT - exakt dasselbe Muster, das die
-# Extension für denselben Ort verwendet.
+# GitHub-Contents-API-Zugriff auf DATA_REPOSITORY - sowohl history.json
+# (GETEILT mit den Browser-Extensions, mehrere unabhängige Schreiber
+# gleichzeitig möglich, daher GET->merge->PUT mit sha-Retry) als auch
+# tracked_users.json (seit 2026-09-10 ebenfalls über die API statt lokalem
+# Checkout+git-commit, s. o. - hier reicht ein einfacher sha-Retry ohne
+# inhaltlichen Merge, weil diese Instanz der einzige Schreiber ist) und
+# data/users/* (Extension-Watchlists, nur lesend).
 # ---------------------------------------------------------------------
 
 
@@ -196,6 +195,19 @@ def github_api_headers():
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+
+
+def _decode_content_response(data):
+    """Contents-API embedded ab ~1MB keinen Content mehr (encoding:"none")
+    - dann stattdessen über die Blobs-API laden, die unabhängig von der
+    Dateigroesse funktioniert. Gemeinsam von history.json und
+    tracked_users.json genutzt."""
+    if data.get("encoding") == "none":
+        blob_res = requests.get(data["git_url"], headers=github_api_headers())
+        blob_res.raise_for_status()
+        blob = blob_res.json()
+        return base64.b64decode(blob["content"]).decode("utf-8")
+    return base64.b64decode(data["content"]).decode("utf-8")
 
 
 def fetch_remote_history():
@@ -208,17 +220,7 @@ def fetch_remote_history():
         return {}, None
     res.raise_for_status()
     data = res.json()
-    if data.get("encoding") == "none":
-        # Contents-API embedded ab ~1MB keinen Content mehr (siehe
-        # data["size"]) - dann stattdessen über die Blobs-API laden, die
-        # unabhängig von der Dateigroesse funktioniert.
-        blob_res = requests.get(data["git_url"], headers=github_api_headers())
-        blob_res.raise_for_status()
-        blob = blob_res.json()
-        content = base64.b64decode(blob["content"]).decode("utf-8")
-    else:
-        content = base64.b64decode(data["content"]).decode("utf-8")
-    return json.loads(content), data["sha"]
+    return json.loads(_decode_content_response(data)), data["sha"]
 
 
 def merge_and_trim(remote_history, pending_entries):
@@ -291,27 +293,106 @@ def sync_history(pending_entries):
     return None
 
 
-def run_tracker():
-    session = requests.Session()
-    token = login(session)
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+def fetch_remote_tracked():
+    """Holt tracked_users.json über die Contents-API. Gibt (liste, sha)
+    zurück, sha None falls die Datei noch nicht existiert."""
+    url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{TRACKED_PATH}"
+    res = requests.get(url, headers=github_api_headers())
+    if res.status_code == 404:
+        return [], None
+    res.raise_for_status()
+    data = res.json()
+    return json.loads(_decode_content_response(data)), data["sha"]
 
-    if not os.path.exists(TRACKED_FILE):
-        print(f"Fehler: {TRACKED_FILE} nicht gefunden.")
-        sys.exit(1)
 
-    with open(TRACKED_FILE, "r", encoding="utf-8") as f:
-        tracked = json.load(f)
+def push_tracked(tracked):
+    """Schreibt tracked_users.json komplett neu (kein inhaltlicher Merge
+    nötig - diese Instanz ist seit dem Umzug auf bot-hosting.net der
+    einzige Schreiber dieser Datei). sha-Retry bei 409 trotzdem, falls
+    jemand die Datei manuell im GitHub-Web bearbeitet."""
+    url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{TRACKED_PATH}"
+    content_str = json.dumps(tracked, indent=2, ensure_ascii=False)
+
+    for attempt in range(1, MAX_MERGE_RETRIES + 1):
+        get_res = requests.get(url, headers=github_api_headers())
+        sha = get_res.json().get("sha") if get_res.status_code == 200 else None
+
+        payload = {
+            "message": "Update tracked_users.json (tracker.py)",
+            "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii"),
+        }
+        if sha:
+            payload["sha"] = sha
+
+        res = requests.put(url, headers=github_api_headers(), json=payload)
+        if res.status_code in (200, 201):
+            return True
+        if res.status_code == 409:
+            print(f"Konflikt beim Schreiben von tracked_users.json (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
+            time.sleep(1 + random.random() * 2)
+            continue
+
+        print(f"Warnung: Unerwarteter Status {res.status_code} beim Schreiben von tracked_users.json: {res.text}")
+        return False
+
+    print("Fehler: tracked_users.json konnte nach mehreren Versuchen nicht geschrieben werden.")
+    return False
+
+
+def collect_extra_names(tracked):
+    """Namen aus allen data/users/<uuid>/tracked_users.json (Watchlists der
+    Browser-Extensions), die noch nicht in der globalen tracked_users.json
+    stehen. Läuft unabhängig davon, ob irgendwo ein islandking.ch-Tab offen
+    ist - ohne diese Ergaenzung wuerden Namen, die nur eine Extension
+    beobachtet, nie ein Hintergrund-Tracking bekommen. Liefert nur die
+    Namen zurueck, NICHT die Dateien selbst - data/users/ bleibt exklusiv
+    von den Extensions beschrieben, diese Funktion liest nur mit.
+
+    Seit 2026-09-10 über die GitHub-Contents-API statt lokalem Checkout
+    (Verzeichnislisting + eine Datei pro UUID) - kein Dateisystem-Zugriff
+    mehr nötig, funktioniert genauso auf bot-hosting.net ohne git-Checkout.
+    """
+    known = {e.get("name", "").lower() for e in tracked if e.get("name")}
+    extra = set()
+
+    list_url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/data/users"
+    res = requests.get(list_url, headers=github_api_headers())
+    if res.status_code == 404:
+        return []
+    res.raise_for_status()
+
+    for entry in res.json():
+        if entry.get("type") != "dir":
+            continue
+        file_url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/data/users/{entry['name']}/tracked_users.json"
+        file_res = requests.get(file_url, headers=github_api_headers())
+        if file_res.status_code != 200:
+            continue
+        try:
+            entries = json.loads(_decode_content_response(file_res.json()))
+        except (json.JSONDecodeError, KeyError) as err:
+            print(f"  Warnung: data/users/{entry['name']}/tracked_users.json konnte nicht gelesen werden: {err}")
+            continue
+        for e in entries:
+            name = e.get("name")
+            if name and name.lower() not in known:
+                extra.add(name)
+
+    return sorted(extra)
+
+
+def run_once(client):
+    tracked, _tracked_sha = fetch_remote_tracked()
 
     # Einmaliger Snapshot zu Beginn nur für die Score-Checkpoint-Entscheidung
     # (ist ein anderer Zweck als der Merge am Ende, der nochmal frisch holt -
     # kleine Ungenauigkeit hier ist unkritisch, siehe Chat).
     initial_history, _ = fetch_remote_history()
-    pending_entries = {}  # {name: [entry, ...]} - nur was DIESER Lauf neu produziert
+    pending_entries = {}  # {name: [entry, ...]} - nur was DIESER Zyklus neu produziert
     extra_names = collect_extra_names(tracked)
 
     print(f"Lade komplette Rangliste (deckt {len(tracked)} Watchlist- + {len(extra_names)} Extra-Namen ab)...")
-    all_players = fetch_all_players(session, headers)
+    all_players = fetch_all_players(client)
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for entry in tracked:
@@ -341,27 +422,44 @@ def run_tracker():
             # weil buildResults() in background.js ausschliesslich die
             # Top-Level tracked_users.json liest, nie data/users/*.
             # origin="extension" markiert das als NICHT Teil der eigenen
-            # Go-Core-Watchlist - das GitHub-Dashboard (Flutter) filtert
-            # danach, sonst wuerde es die Extension-Watchlists ALLER
-            # Nutzer anzeigen, die dieses Repo teilen, nicht nur die eigene.
+            # Watchlist - das GitHub-Dashboard (Flutter) filtert danach,
+            # sonst wuerde es die Extension-Watchlists ALLER Nutzer
+            # anzeigen, die dieses Repo teilen, nicht nur die eigene.
             entry = {"name": name}
             entry.update(result)
             entry["lastChecked"] = now_iso
             entry["origin"] = "extension"
             tracked.append(entry)
 
-    # tracked_users.json: normaler lokaler Schreibvorgang + Git-Commit im
-    # Workflow. Enthaelt jetzt auch die oben ergaenzten Extension-only-Namen.
-    with open(TRACKED_FILE, "w", encoding="utf-8") as f:
-        json.dump(tracked, f, indent=2, ensure_ascii=False)
-
-    # history.json: geteilt, läuft komplett über die API (siehe oben).
+    push_tracked(tracked)
     sync_history(pending_entries)
 
     found_count = sum(1 for e in tracked if e.get("found"))
     print(f"Fertig: {found_count}/{len(tracked)} gefunden.")
-    print(f"{TRACKED_FILE} aktualisiert (lokal/Git), history.json über API gemerged.")
+
+
+def run_forever():
+    """Dauerlauf für bot-hosting.net (Nutzerwunsch 2026-09-10): ersetzt die
+    bisherige GitHub-Actions-Trigger-Kette (cron-job.org -> repository_dispatch
+    -> frischer Runner pro Zyklus) durch einen einzigen langlebigen Prozess
+    mit internem Sleep. Login nur einmal beim Start (IslandkingClient loggt
+    bei Bedarf automatisch neu ein), kein wiederholtes VPN/Checkout/pip-
+    Overhead pro Zyklus mehr."""
+    client = IslandkingClient()
+    while True:
+        started = time.time()
+        try:
+            run_once(client)
+        except Exception as err:
+            print(f"Fehler im Tracker-Zyklus: {err}")
+        elapsed = time.time() - started
+        sleep_for = max(1.0, POLL_INTERVAL_SECONDS - elapsed)
+        print(f"Zyklus in {elapsed:.1f}s, warte {sleep_for:.0f}s bis zum naechsten...")
+        time.sleep(sleep_for)
 
 
 if __name__ == "__main__":
-    run_tracker()
+    if RUN_ONCE:
+        run_once(IslandkingClient())
+    else:
+        run_forever()
