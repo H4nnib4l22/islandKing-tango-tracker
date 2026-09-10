@@ -408,6 +408,12 @@ def run_once(client):
     all_players = fetch_all_players(client)
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    # Nutzerwunsch (2026-09-10): nicht mehr jeden Namen einzeln loggen (bei
+    # 30+ Namen unuebersichtlich) - nur noch eine Zusammenfassung am Ende,
+    # mit Namensliste nur fuer die NICHT gefundenen (die einzigen, die
+    # tatsaechlich Aufmerksamkeit brauchen).
+    not_found = []
+
     for entry in tracked:
         name = entry.get("name")
         if not name:
@@ -416,18 +422,16 @@ def run_once(client):
         result = result_from_player(all_players.get(name.lower()))
         entry.update(result)
         entry["lastChecked"] = now_iso
-
-        status = "gefunden" if result["found"] else "NICHT gefunden"
-        print(f"- {name}: {status}")
+        if not result["found"]:
+            not_found.append(name)
 
         record_result(name, result, initial_history, pending_entries)
 
     if extra_names:
-        print(f"Zusätzlich {len(extra_names)} Namen nur aus Extension-Watchlists: {', '.join(extra_names)}")
         for name in extra_names:
             result = result_from_player(all_players.get(name.lower()))
-            status = "gefunden" if result["found"] else "NICHT gefunden"
-            print(f"- {name} (extra): {status}")
+            if not result["found"]:
+                not_found.append(f"{name} (extra)")
             record_result(name, result, initial_history, pending_entries)
             # Landet jetzt mit in tracked_users.json (nicht mehr nur in
             # history.json) - sonst sieht die Extension nie die von hier
@@ -447,8 +451,11 @@ def run_once(client):
     push_tracked(tracked)
     sync_history(pending_entries)
 
-    found_count = sum(1 for e in tracked if e.get("found"))
-    print(f"Fertig: {found_count}/{len(tracked)} gefunden.")
+    total = len(tracked) + len(extra_names)
+    found_count = total - len(not_found)
+    print(f"Fertig: {found_count}/{total} gefunden, {len(not_found)}/{total} nicht gefunden.")
+    if not_found:
+        print(f"  Nicht gefunden: {', '.join(not_found)}")
 
 
 def run_forever():
