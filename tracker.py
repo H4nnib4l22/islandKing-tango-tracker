@@ -331,6 +331,19 @@ def push_tracked(tracked):
             print(f"Konflikt beim Schreiben von tracked_users.json (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
             time.sleep(1 + random.random() * 2)
             continue
+        if res.status_code == 404:
+            # Kein Datenverlust - dieser Zyklus konnte nur nicht schreiben,
+            # naechster Zyklus versucht es automatisch wieder. GitHub gibt
+            # bei einem privaten Repo bewusst 404 statt 403 zurueck, wenn
+            # der Token keinen Zugriff hat (statt zu verraten, dass es das
+            # Repo gibt) - daher meist Token-Berechtigung oder DATA_REPOSITORY,
+            # nicht das Repo selbst.
+            print(
+                f"Hinweis: tracked_users.json konnte nicht geschrieben werden (HTTP 404) - "
+                f"DATA_REPO_TOKEN hat vermutlich keinen Zugriff auf {DATA_REPOSITORY!r}, "
+                f"oder DATA_REPOSITORY ist falsch gesetzt. Kein Datenverlust, naechster Zyklus versucht es erneut."
+            )
+            return False
 
         print(f"Warnung: Unerwarteter Status {res.status_code} beim Schreiben von tracked_users.json: {res.text}")
         return False
