@@ -65,44 +65,57 @@ def login(session):
     return token
 
 
-def lookup_player(session, headers, name):
-    """Sucht einen Spieler über GET /api/rankings?q=<name>.
+def fetch_all_players(session, headers):
+    """Läd die komplette Rangliste über GET /api/rankings?page=N (ohne q)
+    und baut ein {name.lower(): player}-Mapping.
 
-    Bestätigt per HAR-Aufnahme (islandking_ch_rangliste.har): Antwort ist
-    {"players": [{id, name, score, alliance, rank, online, ...}], ...}.
-
-    Nur ein EXAKTER (Groß-/Kleinschreibung ignorierender) Namenstreffer
-    zählt als gefunden. Die bereits existierende "Tango Tracker"-Extension
-    akzeptiert bei fehlendem Exakt-Treffer notfalls auch den ersten
-    Suchtreffer (players[0]) - das übernehmen wir hier bewusst NICHT,
-    sonst könnte ein falscher Spieler unter einem fremden Namen in
-    tracked_users.json landen.
+    Nutzerwunsch (2026-09-10): ersetzt die bisherige Einzel-Suche pro
+    Spieler (1 Request + 1s Sleep PRO getracktem Namen). Aus
+    RankingsView-DnNik556.js verifiziert: derselbe Endpoint, ohne q wird
+    paginiert ({page:i} statt {q:r}), Antwort enthält players/page/
+    pageSize/playersTotal. Skaliert mit der Gesamtspielerzahl der
+    Rangliste, nicht mit der Watchlist-Größe - bei wachsender Watchlist
+    bleibt die Kostenzahl gleich, statt linear mitzuwachsen.
     """
-    res = session.get(
-        f"{BASE_URL}/api/rankings",
-        params={"q": name},
-        headers=headers,
-    )
+    by_name = {}
+    page = 1
+    total_pages = 1
+    while page <= total_pages:
+        res = session.get(
+            f"{BASE_URL}/api/rankings", params={"page": page}, headers=headers
+        )
+        if res.status_code != 200:
+            print(f"  Warnung: HTTP {res.status_code} bei Rangliste Seite {page}")
+            break
+        data = res.json()
+        for p in data.get("players", []):
+            name = p.get("name")
+            if name:
+                by_name[name.lower()] = p
+        if page == 1:
+            page_size = data.get("pageSize") or len(data.get("players", [])) or 1
+            total = data.get("playersTotal", 0)
+            total_pages = max(1, -(-total // page_size))  # ceil
+            print(f"  Rangliste: {total} Spieler, {total_pages} Seite(n) (pageSize={page_size}).")
+        page += 1
+        if page <= total_pages:
+            time.sleep(REQUEST_DELAY_SECONDS)
+    return by_name
 
-    if res.status_code != 200:
-        print(f"  Warnung: HTTP {res.status_code} bei Suche nach '{name}'")
+
+def result_from_player(p):
+    """Baut dieselbe {found, id, score, alliance, rank, online}-Form wie
+    die bisherige lookup_player(), jetzt aus einem bereits geladenen
+    Rangliste-Eintrag statt einer Einzel-Suche."""
+    if p is None:
         return {"found": False}
-
-    players = res.json().get("players", [])
-    match = next(
-        (p for p in players if p.get("name", "").lower() == name.lower()), None
-    )
-
-    if not match:
-        return {"found": False}
-
     return {
         "found": True,
-        "id": match.get("id"),
-        "score": match.get("score"),
-        "alliance": match.get("alliance"),
-        "rank": match.get("rank"),
-        "online": match.get("online"),
+        "id": p.get("id"),
+        "score": p.get("score"),
+        "alliance": p.get("alliance"),
+        "rank": p.get("rank"),
+        "online": p.get("online"),
     }
 
 
@@ -297,7 +310,8 @@ def run_tracker():
     pending_entries = {}  # {name: [entry, ...]} - nur was DIESER Lauf neu produziert
     extra_names = collect_extra_names(tracked)
 
-    print(f"Prüfe {len(tracked)} Spieler...")
+    print(f"Lade komplette Rangliste (deckt {len(tracked)} Watchlist- + {len(extra_names)} Extra-Namen ab)...")
+    all_players = fetch_all_players(session, headers)
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for entry in tracked:
@@ -305,7 +319,7 @@ def run_tracker():
         if not name:
             continue
 
-        result = lookup_player(session, headers, name)
+        result = result_from_player(all_players.get(name.lower()))
         entry.update(result)
         entry["lastChecked"] = now_iso
 
@@ -313,12 +327,11 @@ def run_tracker():
         print(f"- {name}: {status}")
 
         record_result(name, result, initial_history, pending_entries)
-        time.sleep(REQUEST_DELAY_SECONDS)
 
     if extra_names:
         print(f"Zusätzlich {len(extra_names)} Namen nur aus Extension-Watchlists: {', '.join(extra_names)}")
         for name in extra_names:
-            result = lookup_player(session, headers, name)
+            result = result_from_player(all_players.get(name.lower()))
             status = "gefunden" if result["found"] else "NICHT gefunden"
             print(f"- {name} (extra): {status}")
             record_result(name, result, initial_history, pending_entries)
@@ -336,7 +349,6 @@ def run_tracker():
             entry["lastChecked"] = now_iso
             entry["origin"] = "extension"
             tracked.append(entry)
-            time.sleep(REQUEST_DELAY_SECONDS)
 
     # tracked_users.json: normaler lokaler Schreibvorgang + Git-Commit im
     # Workflow. Enthaelt jetzt auch die oben ergaenzten Extension-only-Namen.
