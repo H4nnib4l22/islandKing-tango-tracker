@@ -54,30 +54,6 @@ if not DATA_GITHUB_TOKEN:
     sys.exit(1)
 
 
-class Spinner:
-    """Textbasierter Lade-Indikator fürs bot-hosting.net-Konsolenlog
-    (Nutzerwunsch 2026-09-10) - komplett synchron per tick()-Aufruf
-    weitergedreht, kein Thread nötig, da tracker.py durchgehend synchron
-    läuft. tick() bei jedem Netzwerk-Roundtrip einer Schleife aufrufen
-    (Rangliste-Seiten, Retry-Versuche), done() beendet die Zeile."""
-
-    FRAMES = "|/-\\"
-
-    def __init__(self, label):
-        self.label = label
-        self._i = 0
-        print(f"{label} ", end="", flush=True)
-
-    def tick(self):
-        frame = self.FRAMES[self._i % len(self.FRAMES)]
-        print(f"\r{self.label} {frame}", end="", flush=True)
-        self._i += 1
-
-    def done(self, suffix=""):
-        text = f"\r{self.label} ✓{(' ' + suffix) if suffix else ''}"
-        print(text + " " * max(0, 10 - len(suffix)))
-
-
 def login(session):
     print("Authentifiziere bei Islandking...")
     res = session.post(
@@ -138,16 +114,15 @@ def fetch_all_players(client, label):
     wächst die Rangliste über die aktuellen 320 Spieler (16 Seiten à 20)
     hinaus, kommen automatisch weitere Seiten dazu.
     """
-    spinner = Spinner(label)
+    print(label)
     by_name = {}
     page = 1
     total_pages = 1
     total = 0
     while page <= total_pages:
-        spinner.tick()
         res = client.get("/api/rankings", params={"page": page})
         if res.status_code != 200:
-            print(f"\n  Warnung: HTTP {res.status_code} bei Rangliste Seite {page}")
+            print(f"  Warnung: HTTP {res.status_code} bei Rangliste Seite {page}")
             break
         data = res.json()
         for p in data.get("players", []):
@@ -161,7 +136,7 @@ def fetch_all_players(client, label):
         page += 1
         if page <= total_pages:
             time.sleep(REQUEST_DELAY_SECONDS)
-    spinner.done(f"{total} Spieler, {total_pages} Seite(n)")
+    print(f"  Rangliste geladen: {total} Spieler, {total_pages} Seite(n).")
     return by_name
 
 
@@ -339,10 +314,8 @@ def push_tracked(tracked):
     jemand die Datei manuell im GitHub-Web bearbeitet."""
     url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{TRACKED_PATH}"
     content_str = json.dumps(tracked, indent=2, ensure_ascii=False)
-    spinner = Spinner("Speichere Watchlist auf GitHub...")
 
     for attempt in range(1, MAX_MERGE_RETRIES + 1):
-        spinner.tick()
         get_res = requests.get(url, headers=github_api_headers())
         sha = get_res.json().get("sha") if get_res.status_code == 200 else None
 
@@ -355,10 +328,9 @@ def push_tracked(tracked):
 
         res = requests.put(url, headers=github_api_headers(), json=payload)
         if res.status_code in (200, 201):
-            spinner.done()
             return True
         if res.status_code == 409:
-            print(f"\nKonflikt beim Schreiben von tracked_users.json (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
+            print(f"Konflikt beim Schreiben von tracked_users.json (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
             time.sleep(1 + random.random() * 2)
             continue
         if res.status_code == 404:
@@ -369,16 +341,16 @@ def push_tracked(tracked):
             # Repo gibt) - daher meist Token-Berechtigung oder DATA_REPOSITORY,
             # nicht das Repo selbst.
             print(
-                f"\nHinweis: tracked_users.json konnte nicht geschrieben werden (HTTP 404) - "
+                f"Hinweis: tracked_users.json konnte nicht geschrieben werden (HTTP 404) - "
                 f"DATA_REPO_TOKEN hat vermutlich keinen Zugriff auf {DATA_REPOSITORY!r}, "
                 f"oder DATA_REPOSITORY ist falsch gesetzt. Kein Datenverlust, naechster Zyklus versucht es erneut."
             )
             return False
 
-        print(f"\nWarnung: Unerwarteter Status {res.status_code} beim Schreiben von tracked_users.json: {res.text}")
+        print(f"Warnung: Unerwarteter Status {res.status_code} beim Schreiben von tracked_users.json: {res.text}")
         return False
 
-    print("\nFehler: tracked_users.json konnte nach mehreren Versuchen nicht geschrieben werden.")
+    print("Fehler: tracked_users.json konnte nach mehreren Versuchen nicht geschrieben werden.")
     return False
 
 
@@ -506,18 +478,14 @@ def run_forever():
             print(f"Fehler im Tracker-Zyklus: {err}")
         elapsed = time.time() - started
         sleep_for = max(1.0, POLL_INTERVAL_SECONDS - elapsed)
-        print(f"Zyklus in {elapsed:.1f}s abgeschlossen.")
-
-        # Nutzerwunsch (2026-09-10): Sekunden-Countdown statt einer einzigen
-        # statischen "warte Xs"-Zeile - dieselbe Gesamt-Wartezeit, nur in
-        # 1s-Schritten heruntergezaehlt und per \r auf derselben Zeile
-        # aktualisiert.
-        remaining = int(round(sleep_for))
-        while remaining > 0:
-            print(f"\rWarte {remaining}s bis zum nächsten Zyklus...", end="", flush=True)
-            time.sleep(1)
-            remaining -= 1
-        print("\r" + " " * 50 + "\r", end="", flush=True)
+        # Kein Live-Countdown: das bot-hosting.net-Konsolenlog haengt jeden
+        # print() als neue Zeile an statt \r als Cursor-Ruecksetzung zu
+        # behandeln (getestet 2026-09-10, Nutzer-Screenshot) - ein
+        # Sekunden-Countdown wuerde also 60 Zeilen Spam pro Zyklus erzeugen
+        # statt einer Animation. Eine einzelne statische Zeile bleibt daher
+        # die einzig sinnvolle Option in diesem Log-Viewer.
+        print(f"Zyklus in {elapsed:.1f}s abgeschlossen, warte {sleep_for:.0f}s bis zum naechsten...")
+        time.sleep(sleep_for)
 
 
 if __name__ == "__main__":
