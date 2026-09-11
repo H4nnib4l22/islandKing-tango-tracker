@@ -484,7 +484,8 @@ def run_forever():
         # Sekunden-Countdown wuerde also 60 Zeilen Spam pro Zyklus erzeugen
         # statt einer Animation. Eine einzelne statische Zeile bleibt daher
         # die einzig sinnvolle Option in diesem Log-Viewer.
-        print(f"Zyklus in {elapsed:.1f}s abgeschlossen, warte {sleep_for:.0f}s bis zum naechsten...")
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{ts}] Zyklus in {elapsed:.1f}s abgeschlossen, warte {sleep_for:.0f}s bis zum naechsten...")
         time.sleep(sleep_for)
 
 
