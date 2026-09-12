@@ -28,6 +28,13 @@ BASE_URL = "https://islandking.ch"
 # die Contents-API wie history.json es schon vorher tat).
 TRACKED_PATH = "data/tracked_users.json"
 HISTORY_PATH = "data/history.json"  # GETEILT mit den Browser-Extensions
+# Eigene Allianz-Roster fuer das Allianz-Buddy-Modul der Extension/des
+# Bookmarklets - ersetzt dessen bisheriges Live-Polling von /api/alliance
+# (Nutzerwunsch 2026-09-12: Extension/Bookmarklet sollen selbst nicht mehr
+# nach islandking.ch fragen, nur noch GitHub lesen). Wird aus denselben
+# all_players gebaut, die ohnehin jeden Zyklus fuer die Watchlist geladen
+# werden - kein zusaetzlicher Rankings-Request noetig.
+ALLIANCE_PATH = "data/alliance.json"
 REQUEST_DELAY_SECONDS = 0.3  # kleine, höfliche Pause zwischen Rangliste-Seiten innerhalb eines Zyklus
 
 # Müssen mit dem übereinstimmen, was die Browser-Extension für denselben,
@@ -97,6 +104,42 @@ class IslandkingClient:
             self._login()
             res = self.session.get(f"{BASE_URL}{path}", params=params, headers=self.headers)
         return res
+
+
+def fetch_own_display_name(client):
+    """GET /api/me fuer den Namen des Bot-Accounts selbst (IK_USER ist der
+    Login-Username, nicht zwingend der angezeigte Spielername) - einmal pro
+    Zyklus, genau wie es das bisherige Extension-Content-Script pro Poll
+    tat. Fehler sind nicht fatal: ohne eigenen Namen wird einfach keine
+    Allianz-Roster gebaut, der Rest des Zyklus laeuft normal weiter."""
+    try:
+        res = client.get("/api/me")
+        if res.status_code != 200:
+            print(f"  Warnung: /api/me lieferte HTTP {res.status_code} - keine Allianz-Roster in diesem Zyklus.")
+            return None
+        return res.json().get("player", {}).get("displayName")
+    except requests.RequestException as err:
+        print(f"  Warnung: /api/me fehlgeschlagen ({err}) - keine Allianz-Roster in diesem Zyklus.")
+        return None
+
+
+def build_own_alliance(all_players, own_name):
+    """Baut die Allianz-Roster des Bot-Accounts direkt aus der ohnehin
+    geladenen Gesamt-Rangliste (all_players hat pro Spieler bereits das
+    alliance-Feld) - kein eigener /api/alliance-Request noetig. Eigener
+    Name wird rausgefiltert (gleiche Regel wie im bisherigen
+    Alliance-Content-Script)."""
+    own = all_players.get(own_name.lower()) if own_name else None
+    alliance_name = own.get("alliance") if own else None
+    if not alliance_name:
+        return None
+    members = [
+        {"name": p.get("name"), "online": bool(p.get("online")), "score": p.get("score"), "rank": p.get("rank")}
+        for p in all_players.values()
+        if p.get("alliance") == alliance_name and p.get("name", "").lower() != (own_name or "").lower()
+    ]
+    members.sort(key=lambda m: (not m["online"], (m["name"] or "").lower()))
+    return {"name": alliance_name, "members": members}
 
 
 def fetch_all_players(client, label):
@@ -307,20 +350,22 @@ def fetch_remote_tracked():
     return json.loads(_decode_content_response(data)), data["sha"]
 
 
-def push_tracked(tracked):
-    """Schreibt tracked_users.json komplett neu (kein inhaltlicher Merge
-    nötig - diese Instanz ist seit dem Umzug auf bot-hosting.net der
-    einzige Schreiber dieser Datei). sha-Retry bei 409 trotzdem, falls
-    jemand die Datei manuell im GitHub-Web bearbeitet."""
-    url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{TRACKED_PATH}"
-    content_str = json.dumps(tracked, indent=2, ensure_ascii=False)
+def push_json(path, data, commit_message):
+    """Schreibt eine JSON-Datei komplett neu (kein inhaltlicher Merge -
+    diese Instanz ist der einzige Schreiber von tracked_users.json und
+    alliance.json). sha-Retry bei 409 trotzdem, falls jemand die Datei
+    manuell im GitHub-Web bearbeitet. Verallgemeinert aus der bisherigen
+    push_tracked(), die nur TRACKED_PATH kannte - alliance.json braucht
+    exakt dieselbe Schreib-Logik."""
+    url = f"https://api.github.com/repos/{DATA_REPOSITORY}/contents/{path}"
+    content_str = json.dumps(data, indent=2, ensure_ascii=False)
 
     for attempt in range(1, MAX_MERGE_RETRIES + 1):
         get_res = requests.get(url, headers=github_api_headers())
         sha = get_res.json().get("sha") if get_res.status_code == 200 else None
 
         payload = {
-            "message": "Update tracked_users.json (tracker.py)",
+            "message": commit_message,
             "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii"),
         }
         if sha:
@@ -330,7 +375,7 @@ def push_tracked(tracked):
         if res.status_code in (200, 201):
             return True
         if res.status_code == 409:
-            print(f"Konflikt beim Schreiben von tracked_users.json (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
+            print(f"Konflikt beim Schreiben von {path} (Versuch {attempt}/{MAX_MERGE_RETRIES}), erneuter Versuch...")
             time.sleep(1 + random.random() * 2)
             continue
         if res.status_code == 404:
@@ -341,17 +386,25 @@ def push_tracked(tracked):
             # Repo gibt) - daher meist Token-Berechtigung oder DATA_REPOSITORY,
             # nicht das Repo selbst.
             print(
-                f"Hinweis: tracked_users.json konnte nicht geschrieben werden (HTTP 404) - "
+                f"Hinweis: {path} konnte nicht geschrieben werden (HTTP 404) - "
                 f"DATA_REPO_TOKEN hat vermutlich keinen Zugriff auf {DATA_REPOSITORY!r}, "
                 f"oder DATA_REPOSITORY ist falsch gesetzt. Kein Datenverlust, naechster Zyklus versucht es erneut."
             )
             return False
 
-        print(f"Warnung: Unerwarteter Status {res.status_code} beim Schreiben von tracked_users.json: {res.text}")
+        print(f"Warnung: Unerwarteter Status {res.status_code} beim Schreiben von {path}: {res.text}")
         return False
 
-    print("Fehler: tracked_users.json konnte nach mehreren Versuchen nicht geschrieben werden.")
+    print(f"Fehler: {path} konnte nach mehreren Versuchen nicht geschrieben werden.")
     return False
+
+
+def push_tracked(tracked):
+    return push_json(TRACKED_PATH, tracked, "Update tracked_users.json (tracker.py)")
+
+
+def push_alliance(alliance):
+    return push_json(ALLIANCE_PATH, alliance, "Update alliance.json (tracker.py)")
 
 
 def collect_extra_names(tracked):
@@ -455,6 +508,14 @@ def run_once(client):
 
     push_tracked(tracked)
     sync_history(pending_entries)
+
+    own_name = fetch_own_display_name(client)
+    own_alliance = build_own_alliance(all_players, own_name)
+    if own_alliance:
+        push_alliance(own_alliance)
+        print(f"  Allianz-Roster gepusht: {own_alliance['name']} ({len(own_alliance['members'])} Mitglieder).")
+    else:
+        print("  Hinweis: keine Allianz-Roster ermittelbar (eigener Name/Allianz nicht gefunden) - alliance.json unveraendert.")
 
     found_count = total - len(not_found)
     print(f"Abgleich abgeschlossen: {found_count}/{total} gefunden und aktualisiert | {len(not_found)} nicht gefunden")
