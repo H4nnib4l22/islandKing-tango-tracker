@@ -37,6 +37,15 @@ HISTORY_MAX_PER_NAME = 5000
 SCORE_CHECKPOINT_INTERVAL_MS = 20 * 60 * 1000  # Punkte nur alle ~20 Min. neu festhalten
 MAX_MERGE_RETRIES = 3
 
+# Nutzerwunsch (2026-09-16): Namen, die dauerhaft nicht in der Rangliste
+# auftauchen (Tippfehler, Spieler existiert nicht mehr), automatisch aus
+# tracked_users.json entfernen statt sie jeden Zyklus weiter abzufragen.
+# Schwelle statt sofortigem Löschen, weil fetch_all_players() bei einer
+# einzelnen fehlgeschlagenen Rangliste-Seite (HTTP-Fehler, s. dort) sonst
+# gültige Namen faelschlich als "nicht gefunden" melden würde - bei
+# POLL_INTERVAL_SECONDS=60 sind das ~5 Minuten Puffer.
+NOT_FOUND_PURGE_THRESHOLD = 5
+
 # Dauerlauf statt Einmal-Ausführung (Nutzerwunsch 2026-09-10: Umzug von
 # GitHub Actions/cron-job.org auf eine dauerhaft laufende Instanz auf
 # bot-hosting.net - macht beides obsolet, kein Runner-Spin-up/Warteschlangen-
@@ -427,7 +436,10 @@ def run_once(client):
         result = result_from_player(all_players.get(name.lower()))
         entry.update(result)
         entry["lastChecked"] = now_iso
-        if not result["found"]:
+        if result["found"]:
+            entry["notFoundStreak"] = 0
+        else:
+            entry["notFoundStreak"] = entry.get("notFoundStreak", 0) + 1
             not_found.append(name)
 
         record_result(name, result, initial_history, pending_entries)
@@ -451,13 +463,20 @@ def run_once(client):
             entry.update(result)
             entry["lastChecked"] = now_iso
             entry["origin"] = "extension"
+            entry["notFoundStreak"] = 0 if result["found"] else 1
             tracked.append(entry)
+
+    purged = [e["name"] for e in tracked if e.get("notFoundStreak", 0) >= NOT_FOUND_PURGE_THRESHOLD]
+    if purged:
+        tracked = [e for e in tracked if e.get("notFoundStreak", 0) < NOT_FOUND_PURGE_THRESHOLD]
 
     push_tracked(tracked)
     sync_history(pending_entries)
 
     found_count = total - len(not_found)
     print(f"Abgleich abgeschlossen: {found_count}/{total} gefunden und aktualisiert | {len(not_found)} nicht gefunden")
+    if purged:
+        print(f"  Entfernt (seit {NOT_FOUND_PURGE_THRESHOLD} Zyklen nicht gefunden): {', '.join(purged)}")
     for name in not_found:
         print(f"  Nicht gefunden: {name} - Grund: {NOT_FOUND_REASON}")
 
